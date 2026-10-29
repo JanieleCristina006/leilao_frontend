@@ -7,7 +7,7 @@ import { apiRequest } from '../lib/api';
 import { mapAuction } from '../lib/api-mappers';
 import { BRL, countdown, fmtDateTime, fmtShortDateTime, pad } from '../lib/format';
 import { ANTI_SNIPE_MS } from '../lib/status';
-import { Artwork, Badge, Breadcrumb, LoadingState, Notice, Page, btn } from '../components/ui';
+import { Artwork, Badge, Breadcrumb, LoadingState, Notice, Page } from '../components/ui';
 import NotFound from './NotFound';
 
 export default function AuctionDetail() {
@@ -95,43 +95,42 @@ function LotCard({ lot, startsAt, now, endsAt }: { lot: Lot; startsAt: string; n
   const price = closed ? (lot.status === 'SOLD' ? lot.currentBid ?? 0 : 0) : lot.currentBid ?? lot.startingBid;
 
   let meta = '';
-  let action = null;
+  let destination: string | null = null;
   if (lot.status === 'OPEN') {
     meta = `${lot.bidCount ? `${lot.bidCount} lances` : 'Sem lances'} · encerra em ${countdown(remaining)}`;
-    action = <Link to={`/lotes/${lot.id}/sala`} className={btn('primary', 'md', 'w-full')}>Entrar na sala</Link>;
+    destination = `/lotes/${lot.id}/sala`;
   } else if (closed) {
     meta = lot.status === 'SOLD' ? `Encerrado em ${fmtShortDateTime(lot.endsAt)}` : 'Encerrado sem lances';
-    action = <Link to={`/lotes/${lot.id}/comprovante`} className={btn('secondary', 'md', 'w-full')}>Ver comprovante</Link>;
+    destination = `/lotes/${lot.id}/comprovante`;
   } else if (lot.status === 'WAITING') {
     meta = `Abre em ${fmtDateTime(startsAt)}`;
-    action = <button disabled className={btn('ghost', 'md', 'w-full')}>Disponível na abertura</button>;
   } else {
     meta = 'Cancelado pelo leiloeiro';
-    action = <button disabled className={btn('ghost', 'md', 'w-full')}>Lote cancelado</button>;
   }
 
-  return (
-    <article className="flex h-full min-w-0 flex-col overflow-hidden rounded-[4px] border border-line bg-surface transition-shadow hover:shadow-[0_12px_32px_rgba(14,17,22,0.10)]">
+  const cardContent = (
+    <>
       <div className="relative">
         <Artwork src={lot.imageUrl} alt={`${lot.title}, de ${lot.artist}`} className="aspect-[4/3] rounded-none" dim={lot.status === 'CANCELLED'} />
         <div className="absolute top-3 left-3"><Badge status={lot.status} /></div>
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-3 p-4 sm:p-5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex min-w-0 flex-col gap-1">
-            <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-muted">Lote {pad(lot.number)}</span>
-            <h3 className="break-words text-[20px] leading-tight font-extrabold tracking-tight">{lot.title}</h3>
-            <span className="text-sm text-muted">{lot.artist}</span>
-          </div>
-          <span aria-hidden className="flex size-8 shrink-0 items-center justify-center rounded-full bg-page text-ink">→</span>
+        <div className="flex min-w-0 flex-col gap-1">
+          <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-muted">Lote {pad(lot.number)}</span>
+          <h3 className={`break-words text-[20px] leading-tight font-extrabold tracking-tight ${destination ? 'group-hover:underline' : ''}`}>{lot.title}</h3>
+          <span className="text-sm text-muted">{lot.artist}</span>
         </div>
         <div className="mt-auto flex items-baseline justify-between gap-2 border-t border-line pt-3">
           <span className="text-[13px] text-muted">{priceLabel}</span>
           <span className="font-mono text-sm font-medium">{BRL(price)}</span>
         </div>
         <span className={`font-mono text-[12px] ${lot.status === 'OPEN' && remaining < ANTI_SNIPE_MS ? 'text-accent' : 'text-muted'}`}>{meta}</span>
-        {action}
       </div>
-    </article>
+    </>
   );
+
+  const cardClass = 'flex h-full min-w-0 flex-col overflow-hidden rounded-[4px] border border-line bg-surface transition-shadow hover:shadow-[0_12px_32px_rgba(14,17,22,0.10)]';
+  return destination
+    ? <Link to={destination} className={`group ${cardClass} no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink`}>{cardContent}</Link>
+    : <article className={cardClass}>{cardContent}</article>;
 }
