@@ -1,5 +1,18 @@
 # Verzel Leilões — Frontend
 
+## Contas seed para demonstração
+
+Preencha com os e-mails das contas criadas pela API. As duas contas de licitante usam a senha compartilhada indicada abaixo.
+
+| Conta | E-mail |
+|---|---|
+| Licitante 1 | `PREENCHER_EMAIL_LICITANTE_1` |
+| Licitante 2 | `PREENCHER_EMAIL_LICITANTE_2` |
+| Leiloeiro | `PREENCHER_EMAIL_LEILOEIRO` |
+
+- Senha dos licitantes: `PREENCHER_SENHA_LICITANTES`
+- Senha do leiloeiro: `PREENCHER_SENHA_LEILOEIRO`
+
 Frontend da plataforma Verzel Leilões, integrado à [API Verzel Leilões](https://github.com/JanieleCristina006/leilao). A aplicação usa React 19, TypeScript, Vite, Tailwind CSS, React Router e Socket.IO.
 
 ## Recursos
