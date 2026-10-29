@@ -55,6 +55,7 @@ export default function LiveRoom() {
   const remaining = s.endsAt - live.now;
   const urgent = !s.closed && remaining < ANTI_SNIPE_MS;
   const top = s.bids[s.bids.length - 1];
+  const currentAmount = Math.max(lot.currentBid ?? lot.startingBid, top?.amount ?? lot.startingBid);
   const min = live.minBid(s, lot);
   const typed = parseMoney(value);
   const quick = [min, min + lot.minimumIncrement, min + lot.minimumIncrement * 3];
@@ -106,8 +107,8 @@ export default function LiveRoom() {
 
             <div className="flex flex-col gap-1 border-t border-line pt-5">
               <span className="text-[13px] text-muted">{s.closed ? 'Valor final' : top ? 'Lance atual' : 'Lance inicial'}</span>
-              <span aria-live="polite" className="break-all font-mono text-[32px] leading-tight font-medium tracking-tight sm:text-[40px]">{BRL(top?.amount ?? lot.startingBid)}</span>
-              <span className="text-[13px] text-muted">{s.bids.length} lances registrados</span>
+              <span aria-live="polite" className="break-all font-mono text-[32px] leading-tight font-medium tracking-tight sm:text-[40px]">{BRL(currentAmount)}</span>
+              <span className="text-[13px] text-muted">{lot.bidCount} lances registrados</span>
             </div>
 
             {s.notice && !s.closed && <Notice tone="warn">{s.notice}</Notice>}
@@ -143,8 +144,8 @@ export default function LiveRoom() {
                 </strong>
                 <span className="text-[15px] leading-relaxed text-body">
                   {s.result === 'WON'
-                    ? `Valor final ${BRL(top!.amount)}, debitado do saldo comprometido. O comprovante já está disponível.`
-                    : s.result === 'SOLD' ? `Vendido por ${BRL(top!.amount)} a outro licitante.` : 'Nenhum lance foi registrado.'}
+                    ? `Valor final ${BRL(currentAmount)}, debitado do saldo comprometido. O comprovante já está disponível.`
+                    : s.result === 'SOLD' ? `Vendido por ${BRL(currentAmount)} a outro licitante.` : 'Nenhum lance foi registrado.'}
                 </span>
                 <div className="flex flex-wrap gap-2.5">
                   <Link to={`/lotes/${lot.id}/comprovante`} className={btn('primary')}>Ver comprovante</Link>
@@ -165,7 +166,7 @@ export default function LiveRoom() {
             </div>
             <ol className="max-h-[320px] overflow-auto">
               {s.bids.length === 0 && <li className="px-5 py-6 text-sm text-muted">Nenhum lance ainda. O primeiro lance deve ser de pelo menos {BRL(lot.startingBid)}.</li>}
-              {[...s.bids].reverse().map((b) => (
+              {[...s.bids].sort((a, b) => b.at - a.at || b.seq - a.seq).map((b) => (
                 <li key={b.seq} className={`grid grid-cols-[40px_1fr_auto] items-center gap-3 border-b border-soft px-5 py-3 ${b.mine ? 'bg-ok-bg/50' : ''}`}>
                   <span className="font-mono text-xs text-muted">#{b.seq}</span>
                   <div className="flex flex-col"><span className={`text-sm ${b.mine ? 'font-bold' : ''}`}>{b.bidder}</span><span className="text-xs text-muted">{clock(b.at)}</span></div>

@@ -90,7 +90,7 @@ function mergeBids(current: Bid[], incoming: Bid[]): Bid[] {
       mine: existing.mine || bid.mine,
     };
   }
-  return merged.sort((a, b) => a.seq - b.seq);
+  return merged.sort((a, b) => a.at - b.at || a.seq - b.seq);
 }
 
 export function LiveProvider({ children }: { children: ReactNode }) {
@@ -374,8 +374,9 @@ export function LiveProvider({ children }: { children: ReactNode }) {
   }, [syncLot]);
 
   const minBid = useCallback((state: LiveState, lot: Lot) => {
-    const latest = state.bids[state.bids.length - 1]?.amount ?? lot.currentBid;
-    return latest == null ? lot.startingBid : latest + lot.minimumIncrement;
+    const latestHistoryBid = state.bids[state.bids.length - 1]?.amount;
+    const current = Math.max(lot.currentBid ?? lot.startingBid, latestHistoryBid ?? lot.startingBid);
+    return lot.bidCount === 0 && state.bids.length === 0 ? lot.startingBid : current + lot.minimumIncrement;
   }, []);
 
   const placeBid = useCallback(async (lotId: string, amount: number): Promise<string | null> => {

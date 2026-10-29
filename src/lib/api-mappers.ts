@@ -94,16 +94,29 @@ export function mapBid(value: unknown, index = 0, userId?: string, userName?: st
     ...record(raw.bidderProfile),
     ...record(raw.profile),
   };
-  const profileId = text(raw.profileId ?? raw.bidderId ?? raw.userId ?? bidder.id);
+  const bidderDetails = {
+    ...record(bidder.account),
+    ...record(bidder.profile),
+    ...record(bidder.user),
+    ...record(bidder.details),
+  };
+  const profileId = text(raw.profileId ?? raw.bidderId ?? raw.userId ?? bidder.id ?? bidderDetails.id);
   const mine = Boolean(raw.mine ?? raw.isMine) || (!!userId && profileId === userId);
   const name = [
-    raw.bidderName, raw.profileName, raw.fullName, raw.displayName, raw.name,
+    raw.bidderName, raw.bidder_name, raw.profileName, raw.profile_name,
+    raw.fullName, raw.full_name, raw.displayName, raw.display_name, raw.userName, raw.user_name, raw.name,
     bidder.name, bidder.fullName, bidder.displayName, bidder.username,
+    bidderDetails.name, bidderDetails.fullName, bidderDetails.displayName, bidderDetails.username,
     raw.bidderLabel, raw.bidderAlias,
     typeof raw.bidder === 'string' ? raw.bidder : undefined,
   ].find((candidate): candidate is string => typeof candidate === 'string' && !!candidate.trim());
   const createdAt = raw.createdAt ?? raw.at ?? raw.timestamp;
-  const at = typeof createdAt === 'number' ? createdAt : Date.parse(String(createdAt ?? ''));
+  const numericTimestamp = typeof createdAt === 'number' || typeof createdAt === 'string' && !!createdAt.trim()
+    ? Number(createdAt)
+    : NaN;
+  const at = Number.isFinite(numericTimestamp)
+    ? numericTimestamp < 1_000_000_000_000 ? numericTimestamp * 1000 : numericTimestamp
+    : Date.parse(String(createdAt ?? ''));
   return {
     seq: numeric(raw.sequence ?? raw.seq, index + 1),
     amount: numeric(raw.amount),
@@ -116,7 +129,8 @@ export function mapBid(value: unknown, index = 0, userId?: string, userName?: st
 }
 
 export function mapBids(value: unknown, userId?: string, userName?: string): Bid[] {
-  return responseList(value).map((item, index) => mapBid(item, index, userId, userName)).sort((a, b) => a.seq - b.seq);
+  return responseList(value).map((item, index) => mapBid(item, index, userId, userName))
+    .sort((a, b) => a.at - b.at || a.seq - b.seq);
 }
 
 export function mapWallet(value: unknown, transactionsValue?: unknown): Wallet {
