@@ -82,7 +82,13 @@ export default function Header() {
         ) : (
           <div className="hidden shrink-0 gap-2 lg:flex">
             <Link to="/entrar" className={btn('ghost', 'md', artHeader ? 'border-white/35 text-white hover:bg-white/10' : '')}>Entrar</Link>
-            <Link to="/cadastro" className={btn('primary', 'md', artHeader ? 'bg-white text-ink hover:bg-white/90' : '')}>Criar conta</Link>
+            <Link
+              to="/cadastro"
+              className={btn('primary', 'md', artHeader ? 'bg-white hover:bg-white/90' : '')}
+              style={artHeader ? { backgroundColor: '#fff', color: '#0e1116' } : undefined}
+            >
+              Criar conta
+            </Link>
           </div>
         )}
 
@@ -140,7 +146,14 @@ export default function Header() {
           ) : (
             <div className={`grid grid-cols-2 gap-2 border-t pt-4 ${separator}`}>
               <Link to="/entrar" onClick={closeMenu} className={btn('ghost', 'md', artHeader ? 'border-white/35 text-white hover:bg-white/10' : '')}>Entrar</Link>
-              <Link to="/cadastro" onClick={closeMenu} className={btn('primary', 'md', artHeader ? 'bg-white text-ink hover:bg-white/90' : '')}>Criar conta</Link>
+              <Link
+                to="/cadastro"
+                onClick={closeMenu}
+                className={btn('primary', 'md', artHeader ? 'bg-white hover:bg-white/90' : '')}
+                style={artHeader ? { backgroundColor: '#fff', color: '#0e1116' } : undefined}
+              >
+                Criar conta
+              </Link>
             </div>
           )}
         </div>
