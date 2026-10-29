@@ -36,7 +36,7 @@ export default function Register() {
     const error = await registerUser(name.trim(), email.trim(), password);
     setSubmitting(false);
     if (error) return setErrors({ email: error });
-    notify('Conta criada. Entre com seu e-mail e senha para continuar.');
+    notify('Conta criada com sucesso!');
     nav('/entrar', { state: { registeredEmail: email.trim() } });
   };
 

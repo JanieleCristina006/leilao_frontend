@@ -44,12 +44,12 @@ export default function Auctions() {
 
       {showFeatured && featured && (
         <article className="grid overflow-hidden rounded-[4px] border border-line bg-surface md:grid-cols-2">
-          <Artwork src={cover(featured.id)?.imageUrl ?? ''} alt={cover(featured.id)?.title ?? ''} className="min-h-[320px] rounded-none md:min-h-[400px]" />
-          <div className="flex flex-col justify-center gap-5 p-8 md:p-10">
+          <Artwork src={cover(featured.id)?.imageUrl ?? ''} alt={cover(featured.id)?.title ?? ''} className="min-h-[240px] rounded-none sm:min-h-[320px] md:min-h-[400px]" />
+          <div className="flex min-w-0 flex-col justify-center gap-5 p-5 sm:p-8 md:p-10">
             <span className="flex items-center gap-2 text-[13px] font-bold tracking-[0.08em] text-live uppercase"><LiveDot />Ao vivo agora</span>
-            <h2 className="text-[36px] leading-[1.05] font-extrabold tracking-tight md:text-[44px]">{featured.title}</h2>
+            <h2 className="break-words text-[30px] leading-[1.05] font-extrabold tracking-tight sm:text-[36px] md:text-[44px]">{featured.title}</h2>
             <p className="text-base leading-relaxed text-pretty text-body">{featured.description}</p>
-            <dl className="grid grid-cols-3 gap-4 border-t border-line pt-5">
+            <dl className="grid grid-cols-1 gap-4 border-t border-line pt-5 sm:grid-cols-3">
               <Stat label="Período" value={fmtPeriod(featured.startsAt, featured.endsAt)} />
               <Stat label="Lotes" value={`${lotsOf(featured.id).length} lotes`} />
               {soonest && (

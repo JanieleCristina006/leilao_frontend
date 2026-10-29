@@ -66,7 +66,7 @@ export default function LiveRoom() {
           <Artwork src={lot.imageUrl} alt={`${lot.title}, de ${lot.artist}`} className="aspect-[4/5] max-h-[640px]" />
           <div className="flex flex-col gap-1.5">
             <span className="font-mono text-[13px] text-muted">Lote {pad(lot.number)} · {auction.title}</span>
-            <h1 className="text-[36px] leading-[1.05] font-extrabold tracking-tight text-balance md:text-[44px]">{lot.title}</h1>
+            <h1 className="break-words text-[30px] leading-[1.05] font-extrabold tracking-tight text-balance sm:text-[36px] md:text-[44px]">{lot.title}</h1>
             <span className="text-[17px] text-body">{lot.artist}</span>
           </div>
           <dl className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-x-6 gap-y-4 border-t border-line pt-5">
@@ -78,7 +78,7 @@ export default function LiveRoom() {
         </section>
 
         <aside className="flex flex-col gap-4 lg:sticky lg:top-6">
-          <div className="flex flex-col gap-5 rounded-[4px] border border-line bg-surface p-7">
+          <div className="flex min-w-0 flex-col gap-5 rounded-[4px] border border-line bg-surface p-5 sm:p-7">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="flex flex-col gap-1.5">
                 {s.closed ? (
@@ -96,7 +96,7 @@ export default function LiveRoom() {
 
             <div className="flex flex-col gap-1 border-t border-line pt-5">
               <span className="text-[13px] text-muted">{s.closed ? 'Valor final' : top ? 'Lance atual' : 'Lance inicial'}</span>
-              <span aria-live="polite" className="font-mono text-[44px] leading-tight font-medium tracking-tight">{BRL(top?.amount ?? lot.startingBid)}</span>
+              <span aria-live="polite" className="break-all font-mono text-[32px] leading-tight font-medium tracking-tight sm:text-[40px]">{BRL(top?.amount ?? lot.startingBid)}</span>
               <span className="text-[13px] text-muted">{s.bids.length} lances registrados</span>
             </div>
 

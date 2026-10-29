@@ -81,7 +81,7 @@ export default function App() {
 
         <Route path="*" element={<NotFound />} />
       </Routes>
-      <Toast message={toast} />
+      {toast && <Toast message={toast.message} tone={toast.tone} />}
     </>
   );
 }

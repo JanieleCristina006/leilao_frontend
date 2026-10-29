@@ -29,8 +29,8 @@ interface AppCtx {
   lots: Lot[];
   users: User[];
   wallets: Record<WalletOwner, Wallet>;
-  toast: string;
-  notify: (msg: string) => void;
+  toast: { message: string; tone: 'success' | 'error' } | null;
+  notify: (msg: string, tone?: 'success' | 'error') => void;
   refreshData: () => Promise<void>;
   loadLot: (id: string) => Promise<LotData>;
   placeBid: (lotId: string, amount: number) => Promise<Bid>;
@@ -128,7 +128,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [lots, setLots] = useState<Lot[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [wallets, setWallets] = useState<Record<WalletOwner, Wallet>>(emptyWallets);
-  const [toast, setToast] = useState('');
+  const [toast, setToast] = useState<AppCtx['toast']>(null);
   const toastTimer = useRef<number | undefined>(undefined);
   const authEpoch = useRef(0);
 
@@ -150,10 +150,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setApiError('');
   }, []);
 
-  const notify = useCallback((msg: string) => {
+  const notify = useCallback((msg: string, tone: 'success' | 'error' = 'success') => {
     window.clearTimeout(toastTimer.current);
-    setToast(msg);
-    toastTimer.current = window.setTimeout(() => setToast(''), 3600);
+    setToast({ message: msg, tone });
+    toastTimer.current = window.setTimeout(() => setToast(null), 3600);
   }, []);
 
   const loadDataFor = useCallback(async (activeSession: Session | null, isCurrent: () => boolean = () => true) => {

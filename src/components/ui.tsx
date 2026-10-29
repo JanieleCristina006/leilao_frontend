@@ -60,12 +60,12 @@ export const Eyebrow = ({ children }: { children: ReactNode }) => (
 
 export function PageTitle({ eyebrow, title, actions }: { eyebrow?: ReactNode; title: ReactNode; actions?: ReactNode }) {
   return (
-    <div className="flex flex-wrap items-end justify-between gap-6">
-      <div className="flex flex-col gap-2.5">
+    <div className="flex min-w-0 flex-wrap items-end justify-between gap-4 sm:gap-6">
+      <div className="flex min-w-0 flex-col gap-2.5">
         {eyebrow && <Eyebrow>{eyebrow}</Eyebrow>}
-        <h1 className="text-[40px] font-extrabold leading-none tracking-tight text-balance md:text-[56px]">{title}</h1>
+        <h1 className="break-words text-[36px] font-extrabold leading-none tracking-tight text-balance sm:text-[40px] md:text-[56px]">{title}</h1>
       </div>
-      {actions && <div className="flex flex-wrap gap-2.5">{actions}</div>}
+      {actions && <div className="flex w-full min-w-0 flex-wrap gap-2.5 sm:w-auto">{actions}</div>}
     </div>
   );
 }
@@ -81,7 +81,7 @@ export function SectionTitle({ children, aside }: { children: ReactNode; aside?:
 
 export function Page({ children, width = 'wide' }: { children: ReactNode; width?: 'wide' | 'mid' | 'narrow' }) {
   const max = width === 'narrow' ? 'max-w-[880px]' : width === 'mid' ? 'max-w-[1040px]' : 'max-w-[1240px]';
-  return <main className={`mx-auto flex w-full flex-col gap-10 px-5 pt-10 pb-24 md:px-8 ${max}`}>{children}</main>;
+  return <main className={`mx-auto flex w-full min-w-0 flex-col gap-8 px-4 pt-7 pb-16 sm:gap-10 sm:px-5 sm:pt-10 sm:pb-20 md:px-8 md:pb-24 ${max}`}>{children}</main>;
 }
 
 export function Breadcrumb({ items }: { items: { label: string; to?: string }[] }) {

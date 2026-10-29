@@ -50,7 +50,7 @@ export default function MyAuctions() {
                           <Button variant="ghost" size="sm" className={n ? 'text-disabled' : 'text-live'} title={n ? 'Remova os lotes antes de excluir' : 'Excluir leilão'}
                             onClick={() => setConfirm(n
                               ? { title: 'Não é possível excluir', body: `"${a.title}" tem ${n} lote(s) vinculado(s). Remova ou cancele os lotes antes de excluir o leilão.`, label: 'Entendi', danger: false }
-                              : { title: 'Excluir leilão?', body: `"${a.title}" será removido permanentemente.`, label: 'Excluir', danger: true, run: async () => { const error = await deleteAuction(a.id); notify(error ?? 'Leilão excluído.'); } })}>
+                              : { title: 'Excluir leilão?', body: `"${a.title}" será removido permanentemente.`, label: 'Excluir', danger: true, run: async () => { const error = await deleteAuction(a.id); notify(error ?? 'Leilão excluído.', error ? 'error' : 'success'); } })}>
                             Excluir
                           </Button>
                         </div>
@@ -83,7 +83,7 @@ export default function MyAuctions() {
                     <td className={td}><Badge status={l.status} /></td>
                     <td className={`${td} text-right`}>
                       <Button variant="ghost" size="sm" disabled={cant} title={cant ? (bids > 0 ? 'Lotes com lances não podem ser cancelados' : 'Lote já encerrado') : 'Cancelar lote'}
-                        onClick={() => setConfirm({ title: 'Cancelar lote?', body: `"${l.title}" ainda não recebeu lances. Depois de cancelado, não volta a aceitar ofertas.`, label: 'Cancelar lote', danger: true, run: async () => { const error = await cancelLot(l.id); notify(error ?? 'Lote cancelado.'); } })}>
+                        onClick={() => setConfirm({ title: 'Cancelar lote?', body: `"${l.title}" ainda não recebeu lances. Depois de cancelado, não volta a aceitar ofertas.`, label: 'Cancelar lote', danger: true, run: async () => { const error = await cancelLot(l.id); notify(error ?? 'Lote cancelado.', error ? 'error' : 'success'); } })}>
                         Cancelar lote
                       </Button>
                     </td>

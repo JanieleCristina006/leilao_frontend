@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useApp } from '../store/AppContext';
 import { BRL, initials } from '../lib/format';
@@ -23,48 +24,121 @@ export default function Header() {
   const { session, logout, wallets } = useApp();
   const { pathname } = useLocation();
   const nav = useNavigate();
+  const [menuOpen, setMenuOpen] = useState(false);
   const items = session ? NAV[session.role] : [{ to: '/leiloes', label: 'Leilões', match: ['/leiloes', '/lotes'] }];
+  const closeMenu = () => setMenuOpen(false);
+  const signOut = () => { logout(); closeMenu(); nav('/entrar'); };
+
+  useEffect(() => { setMenuOpen(false); }, [pathname]);
+  useEffect(() => {
+    if (!menuOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMenuOpen(false);
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [menuOpen]);
 
   return (
     <header className="border-b border-line bg-page">
-      <div className="mx-auto flex min-h-[72px] max-w-[1240px] flex-wrap items-center gap-x-10 gap-y-3 px-5 md:px-8">
+      <div className="mx-auto flex min-h-16 max-w-[1240px] items-center gap-3 px-4 sm:px-5 lg:min-h-[72px] lg:gap-6 lg:px-8">
         <Logo />
-        <nav aria-label="Principal" className="flex flex-1 flex-wrap gap-7 self-stretch">
+
+        <nav aria-label="Principal" className="hidden min-w-0 flex-1 items-stretch gap-4 lg:flex xl:gap-7">
           {items.map((it) => {
             const active = it.match.some((m) => pathname.startsWith(m)) && !(it.to === '/leiloeiro/leiloes' && pathname.includes('/lotes'));
             return (
               <NavLink key={it.to} to={it.to}
-                className={`flex min-h-[72px] items-center border-b-2 text-[15px] font-semibold no-underline ${active ? 'border-ink text-ink' : 'border-transparent text-muted hover:text-ink'}`}>
+                className={`flex min-h-[72px] shrink-0 items-center border-b-2 text-sm font-semibold no-underline xl:text-[15px] ${active ? 'border-ink text-ink' : 'border-transparent text-muted hover:text-ink'}`}>
                 {it.label}
               </NavLink>
             );
           })}
         </nav>
 
-        <ThemeToggle />
+        <div className="ml-auto hidden shrink-0 lg:block"><ThemeToggle /></div>
 
         {session?.role === 'BIDDER' && (
-          <Link to="/carteira" className="flex flex-col items-end gap-0.5 no-underline">
+          <Link to="/carteira" className="hidden shrink-0 flex-col items-end gap-0.5 no-underline lg:flex">
             <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">Saldo disponível</span>
             <span className="font-mono text-[15px] font-medium">{BRL(wallets.BIDDER.availableBalance)}</span>
           </Link>
         )}
 
         {session ? (
-          <div className="flex items-center gap-3">
+          <div className="hidden shrink-0 items-center gap-3 lg:flex">
             <div aria-hidden className="flex size-10 items-center justify-center rounded-full bg-ink text-sm font-bold text-page">{initials(session.name)}</div>
-            <div className="flex flex-col">
-              <span className="text-sm font-semibold">{session.name}</span>
+            <div className="flex min-w-0 flex-col">
+              <span className="max-w-32 truncate text-sm font-semibold">{session.name}</span>
               <span className="text-xs text-muted">{ROLE_LABEL[session.role]}</span>
             </div>
-            <button onClick={() => { logout(); nav('/entrar'); }} className={btn('ghost', 'sm', 'ml-2')}>Sair</button>
+            <button onClick={signOut} className={btn('ghost', 'sm', 'ml-1')}>Sair</button>
           </div>
         ) : (
-          <div className="flex gap-2">
+          <div className="hidden shrink-0 gap-2 lg:flex">
             <Link to="/entrar" className={btn('ghost', 'md')}>Entrar</Link>
             <Link to="/cadastro" className={btn('primary', 'md')}>Criar conta</Link>
           </div>
         )}
+
+        <div className="ml-auto flex shrink-0 items-center gap-2 lg:hidden">
+          <ThemeToggle />
+          <button
+            type="button"
+            aria-label={menuOpen ? 'Fechar menu' : 'Abrir menu'}
+            aria-expanded={menuOpen}
+            aria-controls="mobile-navigation"
+            onClick={() => setMenuOpen((open) => !open)}
+            className="inline-flex size-10 items-center justify-center rounded-[2px] border border-field text-ink transition-colors hover:bg-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+          >
+            {menuOpen ? (
+              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="size-5"><path d="m6 6 12 12M18 6 6 18" /></svg>
+            ) : (
+              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="size-5"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
+            )}
+          </button>
+        </div>
+      </div>
+
+      <div id="mobile-navigation" className={`${menuOpen ? 'block' : 'hidden'} border-t border-line bg-page lg:hidden`}>
+        <div className="mx-auto flex max-w-[1240px] flex-col gap-4 px-4 py-4 sm:px-5">
+          {session?.role === 'BIDDER' && (
+            <Link to="/carteira" onClick={closeMenu} className="flex flex-col gap-0.5 rounded-[2px] bg-soft px-4 py-3 no-underline">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">Saldo disponível</span>
+              <span className="font-mono text-[15px] font-medium">{BRL(wallets.BIDDER.availableBalance)}</span>
+            </Link>
+          )}
+
+          <nav aria-label="Navegação móvel" className="flex flex-col gap-1">
+            {items.map((it) => {
+              const active = it.match.some((m) => pathname.startsWith(m)) && !(it.to === '/leiloeiro/leiloes' && pathname.includes('/lotes'));
+              return (
+                <NavLink key={it.to} to={it.to} onClick={closeMenu}
+                  className={`rounded-[2px] px-4 py-3 text-[15px] font-semibold no-underline ${active ? 'bg-ink text-page' : 'text-ink hover:bg-soft'}`}>
+                  {it.label}
+                </NavLink>
+              );
+            })}
+          </nav>
+
+          {session ? (
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
+              <div className="flex min-w-0 items-center gap-3">
+                <span aria-hidden className="flex size-10 shrink-0 items-center justify-center rounded-full bg-ink text-sm font-bold text-page">{initials(session.name)}</span>
+                <div className="flex min-w-0 flex-col">
+                  <span className="max-w-[min(55vw,240px)] truncate text-sm font-semibold">{session.name}</span>
+                  <span className="text-xs text-muted">{ROLE_LABEL[session.role]}</span>
+                </div>
+              </div>
+              <button onClick={signOut} className={btn('ghost', 'sm')}>Sair</button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-2 border-t border-line pt-4">
+              <Link to="/entrar" onClick={closeMenu} className={btn('ghost', 'md')}>Entrar</Link>
+              <Link to="/cadastro" onClick={closeMenu} className={btn('primary', 'md')}>Criar conta</Link>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );
