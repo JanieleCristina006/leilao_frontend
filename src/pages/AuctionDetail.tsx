@@ -36,7 +36,7 @@ export default function AuctionDetail() {
       <section className="grid items-start gap-x-12 gap-y-8 lg:grid-cols-[minmax(0,1fr)_minmax(300px,0.82fr)]">
         <div className="flex min-w-0 flex-col gap-4">
           <Badge status={auction.status} />
-          <h1 className="break-words font-serif text-[40px] leading-[1.02] font-bold tracking-tight text-balance sm:text-[48px] md:text-[54px]">{auction.title}</h1>
+          <h1 className="break-words text-[40px] leading-[1.02] font-extrabold tracking-tight text-balance sm:text-[48px] md:text-[54px]">{auction.title}</h1>
           <p className="max-w-[560px] text-[16px] leading-relaxed text-pretty text-body sm:text-[17px]">{auction.description}</p>
         </div>
         <dl className="grid gap-5 border-t border-line pt-5 sm:grid-cols-2 lg:grid-cols-1 lg:border-t-0 lg:border-l lg:py-1 lg:pl-8">
@@ -56,7 +56,7 @@ export default function AuctionDetail() {
       {items.length > 0 && (
         <section aria-label="Lotes deste leilão" className="flex flex-col gap-5">
           <div className="flex flex-wrap items-baseline justify-between gap-3 border-t border-line pt-5">
-            <h2 className="font-serif text-[28px] font-bold tracking-tight">Lotes</h2>
+            <h2 className="text-[28px] font-extrabold tracking-tight">Lotes</h2>
             <span className="text-sm text-muted">{items.length} {items.length === 1 ? 'lote' : 'lotes'}</span>
           </div>
           <div className="grid w-full max-w-[720px] grid-cols-[repeat(auto-fill,minmax(min(100%,300px),1fr))] gap-5">
@@ -120,7 +120,7 @@ function LotCard({ lot, startsAt, now, endsAt }: { lot: Lot; startsAt: string; n
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 flex-col gap-1">
             <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-muted">Lote {pad(lot.number)}</span>
-            <h3 className="break-words font-serif text-[20px] leading-tight font-bold tracking-tight">{lot.title}</h3>
+            <h3 className="break-words text-[20px] leading-tight font-extrabold tracking-tight">{lot.title}</h3>
             <span className="text-sm text-muted">{lot.artist}</span>
           </div>
           <span aria-hidden className="flex size-8 shrink-0 items-center justify-center rounded-full bg-page text-ink">→</span>
