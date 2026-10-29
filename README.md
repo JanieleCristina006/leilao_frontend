@@ -55,7 +55,7 @@ npm run preview  # pré-visualizar o build
 | Meus leilões | `/leiloeiro/leiloes` | `AUCTIONEER` | `/auctions/mine`, `/lots/mine` |
 | Criar/editar leilão | `/leiloeiro/leiloes/novo`, `/leiloeiro/leiloes/:id/editar` | `AUCTIONEER` | `POST /auctions`, `PATCH /auctions/:id` |
 | Novo lote | `/leiloeiro/lotes/novo` | `AUCTIONEER` | Busca de obras, `POST /lots` |
-| Usuários | `/admin/usuarios` | `ADMIN` | `GET`, `PATCH` e `DELETE /users` |
+| Usuários | `/admin/usuarios` | `ADMIN` | `GET /users`, `PATCH /users/:id`, `PATCH /users/:id/role`, `DELETE /users/:id` |
 
 ## Autenticação e permissões
 
@@ -69,6 +69,7 @@ npm run preview  # pré-visualizar o build
 - Leilões e lotes usam `GET /auctions` e `GET /lots`; as telas de leiloeiro e administrador consultam os endpoints específicos de cada perfil.
 - Depósitos e lances enviam valores decimais textuais com duas casas, por exemplo `"100.00"`. No cadastro de lotes, `startingBid` e `minimumIncrement` seguem o DTO da API como números.
 - A sala ao vivo autentica o Socket.IO com `auth.token`, aguarda `live.ready` e acompanha eventos de lote, lance, liderança e resultado.
+- Administradores alteram o papel de uma conta via `PATCH /users/:id/role`, enviando `{ "role": "BIDDER" }`, `{ "role": "AUCTIONEER" }` ou `{ "role": "ADMIN" }`.
 - A busca de obras usa `/lots/artworks/search?q=...`. Se o serviço estiver indisponível, os dados do lote podem ser preenchidos manualmente.
 - Erros HTTP são apresentados na interface; respostas `401` encerram a sessão e respostas `403`, conflitos e erros de validação mostram a mensagem da API.
 

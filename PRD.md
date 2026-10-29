@@ -61,7 +61,7 @@ O cadastro público cria somente licitantes. Contas de leiloeiro e administrador
 ### 4.6 Administração de usuários
 
 - Permitir que administradores consultem, filtrem, editem nome, e-mail e papel (`BIDDER`, `AUCTIONEER` ou `ADMIN`) e excluam usuários.
-- Enviar a alteração de papel para a API, que valida e aplica a permissão.
+- Atualizar nome e e-mail via `PATCH /users/:id` e papel via `PATCH /users/:id/role`; a API valida e aplica a permissão.
 - Respeitar as restrições de exclusão retornadas pela API.
 
 ### 4.7 Comprovantes e auditoria

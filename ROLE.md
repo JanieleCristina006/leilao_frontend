@@ -51,7 +51,7 @@ Pode:
 - Atualizar nome, e-mail e perfil (`BIDDER`, `AUCTIONEER` ou `ADMIN`) de um usuário.
 - Excluir usuários quando permitido pela API.
 
-As alterações de perfil são enviadas à API, que valida e aplica a autorização.
+Alterações de nome e e-mail usam `PATCH /users/:id`. Alterações de perfil usam `PATCH /users/:id/role` com o papel no corpo da requisição. A API valida e aplica a autorização.
 
 ## Regras de autorização
 

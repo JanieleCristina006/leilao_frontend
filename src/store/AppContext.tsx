@@ -15,7 +15,7 @@ export interface Session {
 type WalletOwner = 'BIDDER' | 'AUCTIONEER';
 type AuctionDraft = Pick<Auction, 'title' | 'description' | 'status' | 'startsAt' | 'endsAt'>;
 type LotDraft = Pick<Lot, 'auctionId' | 'title' | 'description' | 'imageUrl' | 'externalId' | 'startingBid' | 'minimumIncrement'>;
-type UserDraft = Pick<User, 'name' | 'email' | 'role'>;
+type UserDraft = Pick<User, 'name' | 'email'>;
 type LotData = { lot: Lot; bids: Bid[] };
 
 interface AppCtx {
@@ -43,6 +43,7 @@ interface AppCtx {
   searchArtworks: (query: string) => Promise<Artwork[]>;
   registerUser: (name: string, email: string, password: string) => Promise<string | null>;
   updateUser: (id: string, patch: UserDraft) => Promise<string | null>;
+  updateUserRole: (id: string, role: Role) => Promise<string | null>;
   deleteUser: (id: string) => Promise<string | null>;
 }
 
@@ -393,6 +394,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [handleMutationError, refreshData, session?.token]);
 
+  const updateUserRole = useCallback(async (id: string, role: Role) => {
+    try {
+      const token = session?.token;
+      await apiRequest(`/users/${encodeURIComponent(id)}/role`, { method: 'PATCH', token, body: { role } });
+      if (session?.userId === id && token) {
+        const profile = await apiRequest<unknown>('/auth/me', { token });
+        const nextSession = sessionFrom(profile, token);
+        persistSession(nextSession);
+        await loadDataFor(nextSession);
+      } else {
+        await refreshData();
+      }
+      return null;
+    } catch (error) {
+      return handleMutationError(error);
+    }
+  }, [handleMutationError, loadDataFor, persistSession, refreshData, session?.token, session?.userId]);
+
   const deleteUser = useCallback(async (id: string) => {
     try {
       await apiRequest(`/users/${encodeURIComponent(id)}`, { method: 'DELETE', token: session?.token });
@@ -407,7 +426,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     <Ctx.Provider value={{
       session, authReady, loading, apiError, login, logout, auctions, lots, users, wallets, toast, notify,
       refreshData, loadLot, placeBid, deposit, saveAuction, deleteAuction, addLot, cancelLot, updateLot,
-      searchArtworks, registerUser, updateUser, deleteUser,
+      searchArtworks, registerUser, updateUser, updateUserRole, deleteUser,
     }}>
       {children}
     </Ctx.Provider>

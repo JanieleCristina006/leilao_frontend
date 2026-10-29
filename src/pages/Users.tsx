@@ -9,7 +9,7 @@ import { Modal } from '../components/Modal';
 type Filter = 'ALL' | Role;
 
 export default function Users() {
-  const { users, loading, updateUser, deleteUser, notify } = useApp();
+  const { users, loading, updateUser, updateUserRole, deleteUser, notify } = useApp();
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('ALL');
   const [editing, setEditing] = useState<User | null>(null);
@@ -37,7 +37,8 @@ export default function Users() {
     if (!editing) return;
     if (!name.trim() || !isEmail(email)) return setError('Preencha nome e um e-mail válido.');
     setSaving(true);
-    const failure = await updateUser(editing.id, { name: name.trim(), email: email.trim(), role });
+    let failure = await updateUser(editing.id, { name: name.trim(), email: email.trim() });
+    if (!failure && role !== editing.role) failure = await updateUserRole(editing.id, role);
     setSaving(false);
     if (failure) return setError(failure);
     notify('Usuário atualizado.');
