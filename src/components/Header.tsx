@@ -74,7 +74,8 @@ export default function Header() {
           <div className="hidden shrink-0 items-center gap-3 lg:flex">
             <div aria-hidden className={`flex size-10 items-center justify-center rounded-full text-sm font-bold ${artHeader ? 'bg-white text-ink' : 'bg-ink text-page'}`}>{initials(session.name)}</div>
             <div className="flex min-w-0 flex-col">
-              <span className="max-w-32 truncate text-sm font-semibold">{session.name}</span>
+              <span className="max-w-40 truncate text-sm font-semibold">{session.name}</span>
+              <span className={`max-w-40 truncate text-xs ${artHeader ? 'text-white/75' : 'text-muted'}`} title={session.email}>{session.email}</span>
               <span className={`text-xs ${artHeader ? 'text-white/65' : 'text-muted'}`}>{ROLE_LABEL[session.role]}</span>
             </div>
             <button onClick={signOut} className={btn('ghost', 'sm', `ml-1 ${artHeader ? 'border-white/35 text-white hover:bg-white/10' : ''}`)}>Sair</button>
@@ -138,6 +139,7 @@ export default function Header() {
                 <span aria-hidden className={`flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-bold ${artHeader ? 'bg-white text-ink' : 'bg-ink text-page'}`}>{initials(session.name)}</span>
                 <div className="flex min-w-0 flex-col">
                   <span className="max-w-[min(55vw,240px)] truncate text-sm font-semibold">{session.name}</span>
+                  <span className={`max-w-[min(65vw,280px)] truncate text-xs ${artHeader ? 'text-white/75' : 'text-muted'}`} title={session.email}>{session.email}</span>
                   <span className={`text-xs ${artHeader ? 'text-white/65' : 'text-muted'}`}>{ROLE_LABEL[session.role]}</span>
                 </div>
               </div>
