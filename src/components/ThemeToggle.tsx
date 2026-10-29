@@ -1,6 +1,6 @@
 import { useTheme } from '../store/ThemeContext';
 
-export default function ThemeToggle() {
+export default function ThemeToggle({ light = false }: { light?: boolean }) {
   const { theme, toggleTheme } = useTheme();
   const label = theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro';
 
@@ -11,7 +11,7 @@ export default function ThemeToggle() {
       aria-label={label}
       aria-pressed={theme === 'dark'}
       title={label}
-      className="inline-flex size-10 shrink-0 items-center justify-center rounded-[2px] border border-field text-ink transition-colors hover:bg-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+      className={`inline-flex size-10 shrink-0 items-center justify-center rounded-[2px] border transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 ${light ? 'border-white/35 text-white hover:bg-white/10 focus-visible:outline-white' : 'border-field text-ink hover:bg-soft focus-visible:outline-ink'}`}
     >
       <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="size-5">
         {theme === 'dark' ? (
