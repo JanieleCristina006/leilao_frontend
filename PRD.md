@@ -60,8 +60,8 @@ O cadastro público cria somente licitantes. Contas de leiloeiro e administrador
 
 ### 4.6 Administração de usuários
 
-- Permitir que administradores consultem, filtrem, editem nome e e-mail e excluam usuários.
-- Não permitir alteração do papel do usuário pela tela de edição.
+- Permitir que administradores consultem, filtrem, editem nome, e-mail e papel (`BIDDER`, `AUCTIONEER` ou `ADMIN`) e excluam usuários.
+- Enviar a alteração de papel para a API, que valida e aplica a permissão.
 - Respeitar as restrições de exclusão retornadas pela API.
 
 ### 4.7 Comprovantes e auditoria
@@ -103,7 +103,7 @@ O cadastro público cria somente licitantes. Contas de leiloeiro e administrador
 - Um visitante consegue criar uma conta de licitante e entrar; perfis sem permissão não acessam rotas privadas.
 - Um licitante consegue participar de uma sala elegível, acompanhar mudanças em tempo real e consultar carteira e arremates.
 - Um leiloeiro consegue criar e administrar leilões e lotes dentro das regras de elegibilidade.
-- Um administrador consegue atualizar dados básicos de usuários sem alterar seus papéis.
+- Um administrador consegue atualizar nome, e-mail e papel dos usuários.
 - O comprovante pode ser impresso ou salvo em PDF e a auditoria apresenta o resultado calculado pela API.
 - Layout e navegação permanecem utilizáveis em telas estreitas e largas.
 
@@ -112,7 +112,7 @@ O cadastro público cria somente licitantes. Contas de leiloeiro e administrador
 - Processamento de pagamentos ou depósitos reais.
 - Cadastro público de leiloeiros ou administradores.
 - Geração de PDF por serviço próprio do frontend.
-- Alteração de permissões de usuários pela tela de administração.
+- Alteração de permissões sem validação da API.
 
 ## 10. Métricas sugeridas
 

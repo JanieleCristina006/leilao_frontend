@@ -15,7 +15,7 @@ export interface Session {
 type WalletOwner = 'BIDDER' | 'AUCTIONEER';
 type AuctionDraft = Pick<Auction, 'title' | 'description' | 'status' | 'startsAt' | 'endsAt'>;
 type LotDraft = Pick<Lot, 'auctionId' | 'title' | 'description' | 'imageUrl' | 'externalId' | 'startingBid' | 'minimumIncrement'>;
-type UserDraft = Pick<User, 'name' | 'email'>;
+type UserDraft = Pick<User, 'name' | 'email' | 'role'>;
 type LotData = { lot: Lot; bids: Bid[] };
 
 interface AppCtx {

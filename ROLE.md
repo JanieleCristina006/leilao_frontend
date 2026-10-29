@@ -48,10 +48,10 @@ Perfil provisionado pela equipe; não é oferecido no cadastro público.
 Pode:
 
 - Consultar usuários cadastrados.
-- Atualizar nome e e-mail de um usuário.
+- Atualizar nome, e-mail e perfil (`BIDDER`, `AUCTIONEER` ou `ADMIN`) de um usuário.
 - Excluir usuários quando permitido pela API.
 
-A tela de administração não altera o papel de um usuário.
+As alterações de perfil são enviadas à API, que valida e aplica a autorização.
 
 ## Regras de autorização
 

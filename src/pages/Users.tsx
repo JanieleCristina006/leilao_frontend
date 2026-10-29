@@ -3,7 +3,7 @@ import type { Role, User } from '../types';
 import { useApp } from '../store/AppContext';
 import { fmtDate, initials, isEmail, normalize } from '../lib/format';
 import { ROLE_CLS, ROLE_LABEL } from '../lib/status';
-import { Button, EmptyState, Field, LoadingState, Notice, Page, PageTitle, TextInput } from '../components/ui';
+import { Button, EmptyState, Field, inputCls, LoadingState, Notice, Page, PageTitle, TextInput } from '../components/ui';
 import { Modal } from '../components/Modal';
 
 type Filter = 'ALL' | Role;
@@ -16,6 +16,7 @@ export default function Users() {
   const [removing, setRemoving] = useState<User | null>(null);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [role, setRole] = useState<Role>('BIDDER');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -29,14 +30,14 @@ export default function Users() {
     return <Page><PageTitle eyebrow="Admin" title="Usuários" /><LoadingState label="Carregando usuários…" /></Page>;
   }
 
-  const openEdit = (u: User) => { setEditing(u); setName(u.name); setEmail(u.email); setError(''); };
+  const openEdit = (u: User) => { setEditing(u); setName(u.name); setEmail(u.email); setRole(u.role); setError(''); };
   const close = () => { setEditing(null); setRemoving(null); setError(''); };
 
   const save = async () => {
     if (!editing) return;
     if (!name.trim() || !isEmail(email)) return setError('Preencha nome e um e-mail válido.');
     setSaving(true);
-    const failure = await updateUser(editing.id, { name: name.trim(), email: email.trim() });
+    const failure = await updateUser(editing.id, { name: name.trim(), email: email.trim(), role });
     setSaving(false);
     if (failure) return setError(failure);
     notify('Usuário atualizado.');
@@ -100,7 +101,14 @@ export default function Users() {
 
       <Modal open={!!editing} title="Editar usuário" onClose={close}
         footer={<><Button variant="ghost" size="md" onClick={close}>Voltar</Button><Button size="md" loading={saving} onClick={() => void save()}>{saving ? 'Salvando…' : 'Salvar'}</Button></>}>
-        <p className="text-[15px] text-body">Papel atual: {editing && ROLE_LABEL[editing.role]}. O papel não é alterado por esta tela.</p>
+        <p className="text-[15px] text-body">Papel atual: {editing && ROLE_LABEL[editing.role]}. A alteração será aplicada após confirmação da API.</p>
+        <Field id="u-role" label="Papel">
+          <select id="u-role" value={role} onChange={(e) => { setRole(e.target.value as Role); setError(''); }} className={`${inputCls} border-field`}>
+            <option value="BIDDER">Licitante</option>
+            <option value="AUCTIONEER">Leiloeiro</option>
+            <option value="ADMIN">Administrador</option>
+          </select>
+        </Field>
         <Field id="u-name" label="Nome"><TextInput id="u-name" value={name} onChange={(e) => { setName(e.target.value); setError(''); }} /></Field>
         <Field id="u-email" label="E-mail"><TextInput id="u-email" type="email" value={email} onChange={(e) => { setEmail(e.target.value); setError(''); }} /></Field>
         {error && <Notice tone="error">{error}</Notice>}
