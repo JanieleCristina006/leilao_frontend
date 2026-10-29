@@ -70,12 +70,16 @@ export default function Auctions() {
       {grid.length > 0 && (
         <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,280px),1fr))] gap-x-6 gap-y-8">
           {grid.map((a) => (
-            <Link key={a.id} to={`/leiloes/${a.id}`} className="group flex flex-col gap-3.5 no-underline">
-              <Artwork src={cover(a.id)?.imageUrl ?? ''} alt={cover(a.id)?.title ?? ''} className="aspect-[4/3] transition-opacity group-hover:opacity-90" />
-              <Badge status={a.status} />
-              <span className="text-[24px] leading-tight font-extrabold tracking-tight group-hover:underline">{a.title}</span>
-              <span className="text-sm text-muted">{fmtPeriod(a.startsAt, a.endsAt)} · {lotsOf(a.id).length} lotes</span>
-            </Link>
+            <article key={a.id} className="h-full overflow-hidden rounded-[4px] border border-line bg-surface transition-shadow hover:shadow-[0_12px_32px_rgba(14,17,22,0.10)] focus-within:ring-2 focus-within:ring-ink">
+              <Link to={`/leiloes/${a.id}`} className="group flex h-full flex-col no-underline">
+                <Artwork src={cover(a.id)?.imageUrl ?? ''} alt={cover(a.id)?.title ?? ''} className="aspect-[4/3] rounded-none transition-opacity group-hover:opacity-90" />
+                <div className="flex flex-1 flex-col items-start gap-3.5 p-4 sm:p-5">
+                  <Badge status={a.status} />
+                  <span className="break-words text-[22px] leading-tight font-extrabold tracking-tight group-hover:underline">{a.title}</span>
+                  <span className="mt-auto text-sm text-muted">{fmtPeriod(a.startsAt, a.endsAt)} · {lotsOf(a.id).length} lotes</span>
+                </div>
+              </Link>
+            </article>
           ))}
         </div>
       )}
