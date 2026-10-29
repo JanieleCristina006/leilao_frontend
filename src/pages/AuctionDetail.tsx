@@ -7,7 +7,7 @@ import { apiRequest } from '../lib/api';
 import { mapAuction } from '../lib/api-mappers';
 import { BRL, countdown, fmtDateTime, fmtShortDateTime, pad } from '../lib/format';
 import { ANTI_SNIPE_MS } from '../lib/status';
-import { Artwork, Badge, Breadcrumb, LoadingState, Notice, Page } from '../components/ui';
+import { Artwork, Badge, Breadcrumb, LoadingState, Notice, Page, btn } from '../components/ui';
 import NotFound from './NotFound';
 
 export default function AuctionDetail() {
@@ -60,7 +60,7 @@ export default function AuctionDetail() {
             <span className="text-sm text-muted">{items.length} {items.length === 1 ? 'lote' : 'lotes'}</span>
           </div>
           <div className="grid w-full max-w-[720px] grid-cols-[repeat(auto-fill,minmax(min(100%,300px),1fr))] gap-5">
-            {items.map((lot) => <LotCard key={lot.id} lot={lot} startsAt={auction.startsAt} now={live.now} endsAt={live.get(lot).endsAt} />)}
+            {items.map((lot) => <LotCard key={lot.id} lot={lot} startsAt={auction.startsAt} auctionActive={auction.status === 'ACTIVE'} now={live.now} endsAt={live.get(lot).endsAt} />)}
           </div>
         </section>
       )}
@@ -88,20 +88,22 @@ function DetailFact({ icon, label, value }: { icon: 'calendar' | 'lots' | 'aucti
   );
 }
 
-function LotCard({ lot, startsAt, now, endsAt }: { lot: Lot; startsAt: string; now: number; endsAt: number }) {
+function LotCard({ lot, startsAt, auctionActive, now, endsAt }: { lot: Lot; startsAt: string; auctionActive: boolean; now: number; endsAt: number }) {
   const remaining = endsAt - now;
   const closed = lot.status === 'SOLD' || lot.status === 'UNSOLD';
+  const canEnterRoom = auctionActive && lot.status === 'OPEN';
   const priceLabel = closed ? 'Valor final' : lot.currentBid != null ? 'Lance atual' : 'Lance inicial';
   const price = closed ? (lot.status === 'SOLD' ? lot.currentBid ?? 0 : 0) : lot.currentBid ?? lot.startingBid;
 
   let meta = '';
-  let destination: string | null = null;
+  let cardDestination: string | null = null;
+  let action = null;
   if (lot.status === 'OPEN') {
     meta = `${lot.bidCount ? `${lot.bidCount} lances` : 'Sem lances'} · encerra em ${countdown(remaining)}`;
-    destination = `/lotes/${lot.id}/sala`;
+    if (canEnterRoom) action = <Link to={`/lotes/${lot.id}/sala`} className={btn('primary', 'md', 'w-full')}>Entrar na sala</Link>;
   } else if (closed) {
     meta = lot.status === 'SOLD' ? `Encerrado em ${fmtShortDateTime(lot.endsAt)}` : 'Encerrado sem lances';
-    destination = `/lotes/${lot.id}/comprovante`;
+    cardDestination = `/lotes/${lot.id}/comprovante`;
   } else if (lot.status === 'WAITING') {
     meta = `Abre em ${fmtDateTime(startsAt)}`;
   } else {
@@ -117,7 +119,7 @@ function LotCard({ lot, startsAt, now, endsAt }: { lot: Lot; startsAt: string; n
       <div className="flex min-w-0 flex-1 flex-col gap-3 p-4 sm:p-5">
         <div className="flex min-w-0 flex-col gap-1">
           <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-muted">Lote {pad(lot.number)}</span>
-          <h3 className={`break-words text-[20px] leading-tight font-extrabold tracking-tight ${destination ? 'group-hover:underline' : ''}`}>{lot.title}</h3>
+          <h3 className={`break-words text-[20px] leading-tight font-extrabold tracking-tight ${cardDestination ? 'group-hover:underline' : ''}`}>{lot.title}</h3>
           <span className="text-sm text-muted">{lot.artist}</span>
         </div>
         <div className="mt-auto flex items-baseline justify-between gap-2 border-t border-line pt-3">
@@ -125,12 +127,13 @@ function LotCard({ lot, startsAt, now, endsAt }: { lot: Lot; startsAt: string; n
           <span className="font-mono text-sm font-medium">{BRL(price)}</span>
         </div>
         <span className={`font-mono text-[12px] ${lot.status === 'OPEN' && remaining < ANTI_SNIPE_MS ? 'text-accent' : 'text-muted'}`}>{meta}</span>
+        {action}
       </div>
     </>
   );
 
   const cardClass = 'flex h-full min-w-0 flex-col overflow-hidden rounded-[4px] border border-line bg-surface transition-shadow hover:shadow-[0_12px_32px_rgba(14,17,22,0.10)]';
-  return destination
-    ? <Link to={destination} className={`group ${cardClass} no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink`}>{cardContent}</Link>
+  return cardDestination
+    ? <Link to={cardDestination} className={`group ${cardClass} no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink`}>{cardContent}</Link>
     : <article className={cardClass}>{cardContent}</article>;
 }
