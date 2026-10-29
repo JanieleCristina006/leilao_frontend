@@ -48,9 +48,30 @@ export default function Login() {
         </Field>
         <Field id="password" label="Senha">
           <div className="relative">
-            <TextInput id="password" type={show ? 'text' : 'password'} autoComplete="current-password" className="pr-24" value={password} onChange={(e) => { setPassword(e.target.value); setError(''); }} />
-            <button type="button" onClick={() => setShow(!show)} className="link absolute top-1.5 right-1.5 h-9 px-2.5 text-[13px] font-semibold">
-              {show ? 'Ocultar' : 'Mostrar'}
+            <TextInput id="password" type={show ? 'text' : 'password'} autoComplete="current-password" className="pr-12" value={password} onChange={(e) => { setPassword(e.target.value); setError(''); }} />
+            <button
+              type="button"
+              onClick={() => setShow(!show)}
+              aria-label={show ? 'Ocultar senha' : 'Mostrar senha'}
+              aria-pressed={show}
+              title={show ? 'Ocultar senha' : 'Mostrar senha'}
+              className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-muted hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-ink"
+            >
+              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="size-5">
+                {show ? (
+                  <>
+                    <path d="m3 3 18 18" />
+                    <path d="M10.6 10.6a2 2 0 0 0 2.8 2.8" />
+                    <path d="M9.9 5.2A10.8 10.8 0 0 1 12 5c5 0 8.5 4.5 9.5 7-.4 1-1.3 2.2-2.5 3.3" />
+                    <path d="M6.2 6.2C4.3 7.4 3 9.3 2.5 12c1 2.5 4.5 7 9.5 7 1.3 0 2.5-.3 3.5-.8" />
+                  </>
+                ) : (
+                  <>
+                    <path d="M2.5 12c1-2.5 4.5-7 9.5-7s8.5 4.5 9.5 7c-1 2.5-4.5 7-9.5 7S3.5 14.5 2.5 12Z" />
+                    <circle cx="12" cy="12" r="2.5" />
+                  </>
+                )}
+              </svg>
             </button>
           </div>
         </Field>

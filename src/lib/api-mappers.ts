@@ -88,14 +88,15 @@ export function mapLots(value: unknown, auctions: Auction[] = []): Lot[] {
 
 export function mapBid(value: unknown, index = 0, userId?: string): Bid {
   const raw = responseObject(value);
-  const profileId = text(raw.profileId ?? raw.bidderId ?? record(raw.bidder).id);
+  const bidder = record(raw.bidder ?? raw.user);
+  const profileId = text(raw.profileId ?? raw.bidderId ?? raw.userId ?? bidder.id);
   const mine = Boolean(raw.mine) || (!!userId && profileId === userId);
   const createdAt = raw.createdAt ?? raw.at ?? raw.timestamp;
   const at = typeof createdAt === 'number' ? createdAt : Date.parse(String(createdAt ?? ''));
   return {
     seq: numeric(raw.sequence ?? raw.seq, index + 1),
     amount: numeric(raw.amount),
-    bidder: mine ? 'Você' : text(raw.bidderLabel ?? raw.bidderAlias ?? raw.displayName, 'Outro licitante'),
+    bidder: mine ? 'Você' : text(raw.bidderLabel ?? raw.bidderAlias ?? raw.bidderName ?? raw.displayName ?? bidder.name, 'Outro licitante'),
     mine,
     at: Number.isFinite(at) ? at : Date.now(),
     prevHash: typeof (raw.previousHash ?? raw.prevHash) === 'string' ? String(raw.previousHash ?? raw.prevHash) : null,
@@ -128,13 +129,17 @@ export function mapTransaction(value: unknown): Transaction {
   const artwork = record(lot.artwork);
   const validTypes: TxType[] = ['DEPOSIT', 'BID_RESERVATION', 'BID_RELEASE', 'AUCTION_PAYMENT', 'AUCTION_EARNING'];
   const rawType = text(raw.type, 'DEPOSIT');
+  const description = text(raw.description ?? raw.lotTitle ?? lot.title ?? raw.reference, 'Carteira');
+  const referencedLotId = rawType === 'AUCTION_PAYMENT'
+    ? `${description} ${text(raw.reference)}`.match(/\blote\s+([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\b/i)?.[1]
+    : undefined;
   return {
     id: text(raw.id, `${Date.now()}-${Math.random()}`),
     type: validTypes.includes(rawType as TxType) ? rawType as TxType : 'DEPOSIT',
     amount: numeric(raw.amount),
-    description: text(raw.description ?? raw.lotTitle ?? lot.title ?? raw.reference, 'Carteira'),
+    description,
     createdAt: iso(raw.createdAt),
-    lotId: text(raw.lotId ?? raw.relatedLotId ?? lot.id ?? metadata.lotId) || undefined,
+    lotId: text(raw.lotId ?? raw.relatedLotId ?? lot.id ?? metadata.lotId) || referencedLotId,
     lotTitle: text(raw.lotTitle ?? lot.title ?? metadata.lotTitle) || undefined,
     lotImageUrl: text(raw.lotImageUrl ?? lot.imageUrl ?? artwork.imageUrl ?? artwork.image ?? metadata.imageUrl) || undefined,
     lotArtist: text(raw.lotArtist ?? lot.artist ?? artwork.artist ?? metadata.artist) || undefined,
@@ -163,6 +168,7 @@ export function mapArtworks(value: unknown) {
     title: text(raw.title, 'Obra sem título'),
     artist: text(raw.artist),
     date: text(raw.date),
+    technique: text(raw.technique) || undefined,
     img: text(raw.imageUrl ?? raw.img),
   })).filter((item) => item.id && item.img);
 }

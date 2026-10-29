@@ -52,10 +52,21 @@ const emptyWallet = (): Wallet => ({ availableBalance: 0, committedBalance: 0, t
 const emptyWallets = (): Record<WalletOwner, Wallet> => ({ BIDDER: emptyWallet(), AUCTIONEER: emptyWallet() });
 
 function readSession(): Session | null {
+  let stored: string | null;
   try {
-    const value = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null') as Partial<Session> | null;
-    if (!value?.token || typeof value.token !== 'string') return null;
-    if (value.role !== 'BIDDER' && value.role !== 'AUCTIONEER' && value.role !== 'ADMIN') return null;
+    stored = localStorage.getItem(SESSION_KEY);
+  } catch {
+    return null;
+  }
+  if (!stored) return null;
+
+  try {
+    const value = JSON.parse(stored) as Partial<Session> | null;
+    if (!value?.token || typeof value.token !== 'string'
+      || (value.role !== 'BIDDER' && value.role !== 'AUCTIONEER' && value.role !== 'ADMIN')) {
+      localStorage.removeItem(SESSION_KEY);
+      return null;
+    }
     return {
       token: value.token,
       role: value.role,
@@ -64,6 +75,11 @@ function readSession(): Session | null {
       email: typeof value.email === 'string' ? value.email : '',
     };
   } catch {
+    try {
+      localStorage.removeItem(SESSION_KEY);
+    } catch {
+      // Ignore unavailable browser storage.
+    }
     return null;
   }
 }
@@ -73,10 +89,21 @@ function roleFrom(value: unknown): Role {
   throw new Error('A API não informou um perfil válido para esta conta.');
 }
 
-function sessionFrom(profileValue: unknown, token: string, fallback?: Session): Session {
-  const outer = responseObject(profileValue);
-  const profile = responseObject(outer.user ?? outer.profile ?? outer);
-  const name = profile.name ?? profile.fullName;
+function profileRecord(value: unknown): Record<string, unknown> {
+  const outer = responseObject(value);
+  const user = responseObject(outer.user ?? outer.profile ?? outer.account ?? outer);
+  const nested = responseObject(user.profile ?? user.user ?? user.account ?? user.data);
+  const deeper = responseObject(nested.profile ?? nested.user ?? nested.account);
+  return { ...outer, ...user, ...nested, ...deeper };
+}
+
+function sessionFrom(profileValue: unknown, token: string, fallback?: Session, supplementalValue?: unknown): Session {
+  const profile = { ...profileRecord(supplementalValue), ...profileRecord(profileValue) };
+  const composedName = [profile.firstName ?? profile.first_name, profile.lastName ?? profile.last_name]
+    .filter((part): part is string => typeof part === 'string' && !!part.trim())
+    .join(' ');
+  const name = [profile.name, profile.fullName, profile.full_name, profile.displayName, profile.display_name, profile.username, composedName]
+    .find((candidate): candidate is string => typeof candidate === 'string' && !!candidate.trim());
   return {
     role: roleFrom(profile.role ?? fallback?.role),
     userId: String(profile.id ?? profile.userId ?? profile.sub ?? fallback?.userId ?? ''),
@@ -103,11 +130,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [wallets, setWallets] = useState<Record<WalletOwner, Wallet>>(emptyWallets);
   const [toast, setToast] = useState('');
   const toastTimer = useRef<number | undefined>(undefined);
+  const authEpoch = useRef(0);
 
   const persistSession = useCallback((value: Session | null) => {
     setSessionState(value);
-    if (value) localStorage.setItem(SESSION_KEY, JSON.stringify(value));
-    else localStorage.removeItem(SESSION_KEY);
+    try {
+      if (value) localStorage.setItem(SESSION_KEY, JSON.stringify(value));
+      else localStorage.removeItem(SESSION_KEY);
+    } catch {
+      // The active session remains usable until the page reloads if storage is unavailable.
+    }
+  }, []);
+
+  const clearAccountData = useCallback(() => {
+    setAuctions([]);
+    setLots([]);
+    setUsers([]);
+    setWallets(emptyWallets());
+    setApiError('');
   }, []);
 
   const notify = useCallback((msg: string) => {
@@ -171,25 +211,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let active = true;
+    const epoch = authEpoch.current;
+    const isCurrent = () => active && authEpoch.current === epoch;
     const current = session;
     async function initialize() {
       let verifiedSession = current;
       if (current?.token) {
         try {
           const profile = await apiRequest<unknown>('/auth/me', { token: current.token });
-          verifiedSession = sessionFrom(profile, current.token, current);
-          if (active) persistSession(verifiedSession);
+          // The saved browser role is only a cache. Authorization uses the role returned by the API.
+          verifiedSession = sessionFrom(profile, current.token);
+          if (isCurrent()) persistSession(verifiedSession);
         } catch (error) {
-          if (error instanceof ApiError && error.status === 401) {
-            verifiedSession = null;
-            if (active) persistSession(null);
-          } else if (active) {
-            setApiError(errorText(error));
+          verifiedSession = null;
+          if (isCurrent()) {
+            persistSession(null);
+            if (!(error instanceof ApiError && error.status === 401)) setApiError(errorText(error));
           }
         }
       }
-      if (active) setAuthReady(true);
-      await loadDataFor(verifiedSession, () => active);
+      if (!isCurrent()) return;
+      setAuthReady(true);
+      await loadDataFor(verifiedSession, isCurrent);
     }
     void initialize();
     return () => { active = false; };
@@ -200,24 +243,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const refreshData = useCallback(() => loadDataFor(session), [loadDataFor, session]);
 
   const login = useCallback(async (email: string, password: string): Promise<Session> => {
+    // Drop a previous account before authentication so its token and data cannot leak into this login.
+    if (session?.token) {
+      authEpoch.current += 1;
+      clearAccountData();
+    }
+    persistSession(null);
     const response = await apiRequest<unknown>('/auth/login', { method: 'POST', body: { email, password } });
     const auth = responseObject(response);
     const token = String(auth.accessToken ?? auth.access_token ?? auth.token ?? '');
     if (!token) throw new Error('A API não retornou um token de acesso.');
     const profile = await apiRequest<unknown>('/auth/me', { token });
-    const next = sessionFrom(profile, token);
+    const next = sessionFrom(profile, token, undefined, auth);
     persistSession(next);
     setAuthReady(true);
     return next;
-  }, [persistSession]);
+  }, [clearAccountData, persistSession, session?.token]);
 
   const logout = useCallback(() => {
+    authEpoch.current += 1;
     persistSession(null);
     setAuthReady(true);
-    setApiError('');
-    setUsers([]);
-    setWallets(emptyWallets());
-  }, [persistSession]);
+    clearAccountData();
+  }, [clearAccountData, persistSession]);
 
   const handleMutationError = useCallback((error: unknown) => {
     if (error instanceof ApiError && error.status === 401) logout();

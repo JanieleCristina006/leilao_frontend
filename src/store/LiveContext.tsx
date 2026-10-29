@@ -25,6 +25,7 @@ interface LiveCtx {
   has: (lotId: string) => boolean;
   get: (lot: Lot) => LiveState;
   join: (lot: Lot) => void;
+  leave: (lotId: string) => void;
   placeBid: (lotId: string, amount: number) => Promise<string | null>;
   bidsFor: (lot: Lot) => Bid[];
   minBid: (state: LiveState, lot: Lot) => number;
@@ -37,10 +38,19 @@ const readNumber = (value: unknown): number | null => {
   if (typeof value === 'string' && value.trim() && Number.isFinite(Number(value))) return Number(value);
   return null;
 };
+const readTimestamp = (value: unknown): number | null => {
+  if (typeof value === 'number' && Number.isFinite(value)) return value < 1_000_000_000_000 ? value * 1000 : value;
+  if (typeof value !== 'string' || !value.trim()) return null;
+  const numericValue = Number(value);
+  if (Number.isFinite(numericValue)) return numericValue < 1_000_000_000_000 ? numericValue * 1000 : numericValue;
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
 
 function eventBody(value: unknown) {
   const outer = asObject(value);
-  return asObject(outer.data ?? outer.payload ?? outer);
+  const nested = asObject(outer.data ?? outer.payload);
+  return Object.keys(nested).length ? { ...outer, ...nested } : outer;
 }
 
 function stateFor(lot: Lot, bids: Bid[] = []): LiveState {
@@ -63,12 +73,14 @@ export function LiveProvider({ children }: { children: ReactNode }) {
   const appRef = useRef(app);
   appRef.current = app;
   const [now, setNow] = useState(Date.now());
+  const serverOffset = useRef(0);
   const [states, setStates] = useState<Record<string, LiveState>>({});
   const statesRef = useRef(states);
   statesRef.current = states;
   const rooms = useRef(new Set<string>());
   const socketRef = useRef<Socket | null>(null);
   const readyRef = useRef(false);
+  const activeUserRef = useRef(app.session?.userId ?? null);
 
   const patchState = useCallback((lotId: string, patch: Partial<LiveState> | ((current: LiveState) => LiveState)) => {
     setStates((current) => {
@@ -83,11 +95,20 @@ export function LiveProvider({ children }: { children: ReactNode }) {
 
   const updateFromSnapshot = useCallback((payload: unknown) => {
     const body = eventBody(payload);
-    const rawLot = asObject(body.lot ?? body.snapshot ?? body);
-    const lotId = String(body.lotId ?? rawLot.lotId ?? rawLot.id ?? '');
+    const snapshot = asObject(body.snapshot);
+    const rawLot = asObject(body.lot ?? snapshot.lot ?? (Object.keys(snapshot).length ? snapshot : body));
+    const lotId = String(body.lotId ?? snapshot.lotId ?? rawLot.lotId ?? rawLot.id ?? '');
     if (!lotId || !rooms.current.has(lotId)) return;
-    const bidsPayload = body.bids ?? rawLot.bids;
+    const clockData = asObject(body.clock ?? snapshot.clock);
+    const serverTimestamp = readTimestamp(body.serverTime ?? snapshot.serverTime ?? clockData.serverTime ?? body.serverNow ?? snapshot.serverNow);
+    if (serverTimestamp !== null) {
+      serverOffset.current = serverTimestamp - Date.now();
+      setNow(Date.now() + serverOffset.current);
+    }
+    const bidsPayload = body.bids ?? snapshot.bids ?? body.history ?? snapshot.history ?? rawLot.bids;
     const bids = mapBids(bidsPayload, appRef.current.session?.userId);
+    const leadership = asObject(body.leadership ?? snapshot.leadership);
+    const leadingValue = body.isLeading ?? snapshot.isLeading ?? leadership.isLeading ?? rawLot.isLeading;
     const status = String(rawLot.status ?? body.status ?? '').toUpperCase();
     const endsAt = rawLot.endsAt ?? body.endsAt;
     const currentBid = readNumber(rawLot.currentBid ?? body.currentBid);
@@ -107,6 +128,11 @@ export function LiveProvider({ children }: { children: ReactNode }) {
     patchState(lotId, (current) => ({
       ...current,
       ...(bidsPayload !== undefined ? { bids } : {}),
+      ...(typeof leadingValue === 'boolean' ? {
+        leading: leadingValue,
+        outbid: !leadingValue && current.leading,
+        myBid: leadingValue ? bids.filter((bid) => bid.mine).slice(-1)[0]?.amount ?? current.myBid : 0,
+      } : {}),
       ...(typeof endsAt === 'string' && Number.isFinite(Date.parse(endsAt)) ? { endsAt: Date.parse(endsAt) } : {}),
       ...(status ? { closed: isClosed } : {}),
       connected: true,
@@ -115,9 +141,14 @@ export function LiveProvider({ children }: { children: ReactNode }) {
 
   const addEventBid = useCallback((payload: unknown) => {
     const body = eventBody(payload);
-    const rawBid = asObject(body.bid ?? body);
-    const lotId = String(body.lotId ?? rawBid.lotId ?? '');
+    const bidData = asObject(body.bid ?? body);
+    const rawBid: Record<string, unknown> = {
+      ...bidData,
+      amount: bidData.amount ?? body.amount ?? body.currentBid ?? body.currentAmount,
+    };
+    const lotId = String(body.lotId ?? asObject(body.lot).id ?? rawBid.lotId ?? asObject(rawBid.lot).id ?? '');
     if (!lotId || !rooms.current.has(lotId)) return;
+    if (readNumber(rawBid.amount) === null) return;
     const bid = mapBid(rawBid, statesRef.current[lotId]?.bids.length ?? 0, appRef.current.session?.userId);
     const endsAt = body.endsAt ?? body.newEndsAt ?? rawBid.endsAt;
     const endsAtMs = typeof endsAt === 'string' ? Date.parse(endsAt) : NaN;
@@ -132,7 +163,7 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       const exists = bid.hash ? current.bids.some((item) => item.hash === bid.hash) : current.bids.some((item) => item.seq === bid.seq && item.amount === bid.amount);
       return { ...current, ...patch, bids: exists ? current.bids : [...current.bids, bid].sort((a, b) => a.seq - b.seq) };
     });
-    const currentBid = readNumber(rawBid.amount);
+    const currentBid = readNumber(body.currentBid ?? rawBid.amount);
     if (currentBid != null) appRef.current.updateLot(lotId, {
       currentBid,
       bidCount: nextBidCount,
@@ -146,7 +177,9 @@ export function LiveProvider({ children }: { children: ReactNode }) {
     if (!lotId || !rooms.current.has(lotId)) return;
     const leader = asObject(body.leader ?? body.bidder ?? body.profile);
     const leaderId = String(body.leaderId ?? body.leadingUserId ?? body.currentLeaderId ?? body.profileId ?? body.bidderId ?? leader.id ?? '');
-    const isMine = body.mine === true || body.isMine === true || (!!leaderId && leaderId === appRef.current.session?.userId);
+    const isMine = typeof body.isLeading === 'boolean'
+      ? body.isLeading
+      : body.mine === true || body.isMine === true || (!!leaderId && leaderId === appRef.current.session?.userId);
     const wasLeading = statesRef.current[lotId]?.leading ?? false;
     patchState(lotId, (current) => ({
       ...current,
@@ -175,35 +208,37 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       ...(status === 'UNSOLD' ? { currentBid: null } : amount !== null ? { currentBid: amount } : {}),
       ...(typeof body.endsAt === 'string' ? { endsAt: body.endsAt } : {}),
     });
-    if (resultEvent) {
-      void appRef.current.refreshData();
-      if (result === 'WON') appRef.current.notify('Parabéns! Você arrematou este lote.');
-    }
+    void appRef.current.refreshData();
+    if (resultEvent && result === 'WON') appRef.current.notify('Parabéns! Você arrematou este lote.');
   }, [patchState]);
 
   useEffect(() => {
-    const interval = window.setInterval(() => setNow(Date.now()), 1000);
+    const interval = window.setInterval(() => setNow(Date.now() + serverOffset.current), 1000);
     return () => window.clearInterval(interval);
   }, []);
 
   useEffect(() => {
+    const userId = app.session?.userId ?? null;
+    if (activeUserRef.current !== userId) {
+      activeUserRef.current = userId;
+      rooms.current.clear();
+      statesRef.current = {};
+      setStates({});
+    }
+
     const token = app.session?.token;
     if (!token) {
       socketRef.current?.disconnect();
       socketRef.current = null;
       readyRef.current = false;
+      rooms.current.clear();
+      statesRef.current = {};
+      setStates({});
       return;
     }
 
     const socket = io(API_URL, { auth: { token }, autoConnect: false });
     socketRef.current = socket;
-    const onConnect = () => {
-      setStates((current) => {
-        const next = Object.fromEntries(Object.entries(current).map(([id, value]) => [id, { ...value, connected: true }]));
-        statesRef.current = next;
-        return next;
-      });
-    };
     const onDisconnect = () => {
       readyRef.current = false;
       setStates((current) => {
@@ -214,7 +249,33 @@ export function LiveProvider({ children }: { children: ReactNode }) {
     };
     const onReady = () => {
       readyRef.current = true;
+      setStates((current) => {
+        const next = Object.fromEntries(Object.entries(current).map(([id, value]) => [id, {
+          ...value,
+          connected: true,
+          notice: value.notice.startsWith('Falha na conexão ao vivo:') ? '' : value.notice,
+        }]));
+        statesRef.current = next;
+        return next;
+      });
       rooms.current.forEach((lotId) => socket.emit('lot.join', { lotId }));
+    };
+    const markLiveError = (message: string, lotId?: string) => {
+      setStates((current) => {
+        const next = Object.fromEntries(Object.entries(current).map(([id, value]) => [id,
+          (!lotId || lotId === id) ? { ...value, connected: false, notice: `Falha na conexão ao vivo: ${message}` } : value,
+        ]));
+        statesRef.current = next;
+        return next;
+      });
+    };
+    const onConnectError = (error: Error) => markLiveError(error.message || 'Não foi possível autenticar a conexão.');
+    const onLiveError = (payload: unknown) => {
+      const body = eventBody(payload);
+      const message = typeof body.message === 'string' ? body.message
+        : typeof body.error === 'string' ? body.error
+          : 'A API não conseguiu abrir a sala deste lote.';
+      markLiveError(message, typeof body.lotId === 'string' ? body.lotId : undefined);
     };
     const onSnapshot = (payload: unknown) => updateFromSnapshot(payload);
     const onBid = (payload: unknown) => addEventBid(payload);
@@ -222,9 +283,10 @@ export function LiveProvider({ children }: { children: ReactNode }) {
     const onClosed = (payload: unknown) => closeLot(payload);
     const onResult = (payload: unknown) => closeLot(payload, true);
 
-    socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
+    socket.on('connect_error', onConnectError);
     socket.on('live.ready', onReady);
+    socket.on('live.error', onLiveError);
     socket.on('lot.snapshot', onSnapshot);
     socket.on('bid.updated', onBid);
     socket.on('leadership.updated', onLeadership);
@@ -233,9 +295,10 @@ export function LiveProvider({ children }: { children: ReactNode }) {
     socket.connect();
 
     return () => {
-      socket.off('connect', onConnect);
       socket.off('disconnect', onDisconnect);
+      socket.off('connect_error', onConnectError);
       socket.off('live.ready', onReady);
+      socket.off('live.error', onLiveError);
       socket.off('lot.snapshot', onSnapshot);
       socket.off('bid.updated', onBid);
       socket.off('leadership.updated', onLeadership);
@@ -245,10 +308,14 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       if (socketRef.current === socket) socketRef.current = null;
       readyRef.current = false;
     };
-  }, [app.session?.token, updateFromSnapshot, addEventBid, updateLeadership, closeLot]);
+  }, [app.session?.token, app.session?.userId, updateFromSnapshot, addEventBid, updateLeadership, closeLot]);
 
   const has = useCallback((lotId: string) => !!statesRef.current[lotId], []);
   const get = useCallback((lot: Lot) => statesRef.current[lot.id] ?? stateFor(lot), []);
+  const leave = useCallback((lotId: string) => {
+    if (!rooms.current.delete(lotId)) return;
+    if (readyRef.current) socketRef.current?.emit('lot.leave', { lotId });
+  }, []);
   const join = useCallback((lot: Lot) => {
     rooms.current.add(lot.id);
     setStates((current) => {
@@ -314,7 +381,7 @@ export function LiveProvider({ children }: { children: ReactNode }) {
 
   const bidsFor = useCallback((lot: Lot) => statesRef.current[lot.id]?.bids ?? [], []);
 
-  return <Ctx.Provider value={{ now, has, get, join, placeBid, bidsFor, minBid }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ now, has, get, join, leave, placeBid, bidsFor, minBid }}>{children}</Ctx.Provider>;
 }
 
 export function useLive() {

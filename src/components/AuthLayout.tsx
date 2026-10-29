@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import type { Artwork } from '../types';
 import { Eyebrow, Logo } from './ui';
+import ThemeToggle from './ThemeToggle';
 
 export default function AuthLayout({ art, caption, reverse, children }: { art: Artwork; caption: string; reverse?: boolean; children: ReactNode }) {
   return (
@@ -15,7 +16,10 @@ export default function AuthLayout({ art, caption, reverse, children }: { art: A
       </div>
       <div className="flex items-center justify-center px-6 py-14 md:px-8">
         <div className="flex w-full max-w-[400px] flex-col gap-6">
-          <Logo />
+          <div className="flex items-center justify-between gap-4">
+            <Logo />
+            <ThemeToggle />
+          </div>
           {children}
         </div>
       </div>

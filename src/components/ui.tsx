@@ -11,7 +11,7 @@ const VARIANT: Record<Variant, string> = {
   primary: 'bg-ink text-page hover:bg-ink-2 disabled:bg-disabled disabled:hover:bg-disabled',
   secondary: 'border border-ink text-ink hover:bg-soft',
   ghost: 'border border-field text-ink hover:bg-soft',
-  danger: 'bg-accent text-white hover:bg-live',
+  danger: 'bg-accent text-white hover:bg-accent/90',
 };
 const SIZE: Record<Size, string> = {
   sm: 'h-9 px-3 text-[13px]',
@@ -150,7 +150,7 @@ export function Notice({ tone = 'info', title, children }: { tone?: Tone; title?
 }
 
 export const inputCls =
-  'w-full h-12 px-3.5 rounded-[2px] border bg-white text-base text-ink outline-none placeholder:text-[#9aa1ad] focus:border-ink focus:ring-3 focus:ring-ink/10';
+  'w-full h-12 px-3.5 rounded-[2px] border bg-surface text-base text-ink outline-none placeholder:text-muted focus:border-ink focus:ring-3 focus:ring-ink/10';
 
 export function Field({ id, label, required, optional, hint, error, children }: { id?: string; label: string; required?: boolean; optional?: boolean; hint?: ReactNode; error?: string; children: ReactNode }) {
   return (
@@ -172,7 +172,7 @@ export function TextInput({ invalid, className = '', ...p }: InputHTMLAttributes
 
 export function MoneyInput({ invalid, large, ...p }: InputHTMLAttributes<HTMLInputElement> & { invalid?: boolean; large?: boolean }) {
   return (
-    <div className={`flex items-center rounded-[2px] border bg-white focus-within:border-ink focus-within:ring-3 focus-within:ring-ink/10 ${large ? 'h-14' : 'h-12'} ${invalid ? 'border-accent' : 'border-field'} ${p.disabled ? 'opacity-60' : ''}`}>
+    <div className={`flex items-center rounded-[2px] border bg-surface focus-within:border-ink focus-within:ring-3 focus-within:ring-ink/10 ${large ? 'h-14' : 'h-12'} ${invalid ? 'border-accent' : 'border-field'} ${p.disabled ? 'opacity-60' : ''}`}>
       <span className="pl-3.5 font-mono text-muted">R$</span>
       <input inputMode="decimal" placeholder="0,00" {...p} aria-invalid={invalid || undefined} className={`h-full min-w-0 flex-1 bg-transparent px-3 font-mono outline-none disabled:cursor-not-allowed ${large ? 'text-xl' : 'text-base'}`} />
     </div>

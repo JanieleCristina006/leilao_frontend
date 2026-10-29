@@ -16,11 +16,16 @@ export default function LiveRoom() {
   const [value, setValue] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const joinLiveLot = live.join;
+  const leaveLiveLot = live.leave;
 
   const canJoin = !!lot && auction?.status === 'ACTIVE' && lot.status === 'OPEN';
   useEffect(() => {
-    if (lot && canJoin) live.join(lot);
-  }, [lot?.id, canJoin]);
+    if (!lot || !canJoin) return;
+    const lotId = lot.id;
+    joinLiveLot(lot);
+    return () => leaveLiveLot(lotId);
+  }, [lot?.id, canJoin, joinLiveLot, leaveLiveLot]);
 
   if (!lot || !auction) return <NotFound />;
   if (!canJoin && !live.has(lot.id)) {

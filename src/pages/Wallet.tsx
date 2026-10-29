@@ -1,13 +1,15 @@
 import { useState, type FormEvent } from 'react';
 import { useApp } from '../store/AppContext';
-import { BRL, BRLshort, fmtShortDateTime, parseMoney, plain } from '../lib/format';
+import { BRL, BRLshort, parseMoney, plain } from '../lib/format';
 import { ROLE_LABEL, TX } from '../lib/status';
 import { Button, MoneyInput, Page, PageTitle, SectionTitle } from '../components/ui';
+import type { Transaction } from '../types';
 
 export default function WalletPage() {
   const { session, wallets, deposit, notify } = useApp();
   const isBidder = session?.role === 'BIDDER';
   const W = wallets[isBidder ? 'BIDDER' : 'AUCTIONEER'];
+  const statementGroups = groupTransactionsByMonth(W.transactions);
   const [amount, setAmount] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -73,25 +75,86 @@ export default function WalletPage() {
 
         <section className="flex flex-col gap-3">
           <SectionTitle aside="Mais recentes primeiro">Extrato</SectionTitle>
-          <ul aria-label="Movimentações da carteira" className="max-h-[420px] overflow-y-auto overscroll-contain border-t border-line pr-3">
-            {W.transactions.map((t) => {
-              const m = TX[t.type];
-              const incoming = t.type === 'DEPOSIT' || t.type === 'AUCTION_EARNING';
-              const outgoing = t.type === 'AUCTION_PAYMENT';
-              const rowTone = incoming ? 'border-l-4 border-l-ok bg-ok-bg/45 pl-3' : outgoing ? 'border-l-4 border-l-live bg-live-bg/45 pl-3' : '';
-              const amountTone = incoming ? 'bg-ok-bg text-ok ring-1 ring-ok/30' : outgoing ? 'bg-live-bg text-live ring-1 ring-live/30' : 'bg-soft text-ink';
-              return (
-                <li key={t.id} className={`grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 border-b border-line py-4 ${rowTone}`}>
-                  <span className="text-[15px] font-semibold">{m.label}</span>
-                  <span className={`inline-flex items-center justify-self-end rounded-[2px] px-2.5 py-1 text-right font-mono text-[15px] font-bold ${amountTone}`}>{m.sign}{BRL(Math.abs(t.amount))}</span>
-                  <span className="text-[13px] text-muted">{t.description} · {fmtShortDateTime(t.createdAt)}</span>
-                  <span className="text-right text-[13px] text-muted">{m.effect}</span>
-                </li>
-              );
-            })}
-          </ul>
+          <div aria-label="Movimentações da carteira" className="max-h-[420px] overflow-y-auto overscroll-contain border-t border-line pr-3">
+            {statementGroups.length ? statementGroups.map((month) => (
+              <section key={month.key} aria-label={month.label}>
+                <h3 className="border-b border-line bg-page px-2 py-3 text-sm font-bold capitalize">{month.label}</h3>
+                {month.days.map((day) => (
+                  <div key={day.key}>
+                    <h4 className="bg-surface px-2 pb-1 pt-4 text-xs font-semibold capitalize text-muted">{day.label}</h4>
+                    <ul>
+                      {day.transactions.map((t) => {
+                        const m = TX[t.type];
+                        const incoming = t.type === 'DEPOSIT' || t.type === 'AUCTION_EARNING';
+                        const outgoing = t.type === 'AUCTION_PAYMENT';
+                        const rowTone = incoming ? 'border-l-4 border-l-ok bg-ok-bg/45 pl-3' : outgoing ? 'border-l-4 border-l-live bg-live-bg/45 pl-3' : '';
+                        const amountTone = incoming ? 'bg-ok-bg text-ok ring-1 ring-ok/30' : outgoing ? 'bg-live-bg text-live ring-1 ring-live/30' : 'bg-soft text-ink';
+                        return (
+                          <li key={t.id} className={`grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 border-b border-line py-4 ${rowTone}`}>
+                            <span className="text-[15px] font-semibold">{m.label}</span>
+                            <span className={`inline-flex items-center justify-self-end rounded-[2px] px-2.5 py-1 text-right font-mono text-[15px] font-bold ${amountTone}`}>{m.sign}{BRL(Math.abs(t.amount))}</span>
+                            <span className="text-[13px] text-muted">{t.description} · {formatTransactionTime(t.createdAt)}</span>
+                            <span className="text-right text-[13px] text-muted">{m.effect}</span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                ))}
+              </section>
+            )) : <p className="px-2 py-6 text-sm text-muted">Ainda não há movimentações na carteira.</p>}
+          </div>
         </section>
       </div>
     </Page>
   );
+}
+
+type StatementDay = { key: string; label: string; transactions: Transaction[] };
+type StatementMonth = { key: string; label: string; days: StatementDay[] };
+
+function groupTransactionsByMonth(transactions: Transaction[]): StatementMonth[] {
+  const sorted = [...transactions].sort((a, b) => {
+    const dateA = Date.parse(a.createdAt);
+    const dateB = Date.parse(b.createdAt);
+    return (Number.isNaN(dateB) ? 0 : dateB) - (Number.isNaN(dateA) ? 0 : dateA);
+  });
+  const months = new Map<string, StatementMonth>();
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const dateKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+
+  for (const transaction of sorted) {
+    const date = new Date(transaction.createdAt);
+    const validDate = !Number.isNaN(date.getTime());
+    const monthKey = validDate ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}` : 'unknown';
+    const dayKey = validDate ? dateKey(date) : 'unknown';
+    let month = months.get(monthKey);
+    if (!month) {
+      const monthLabel = validDate
+        ? new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' }).format(date)
+        : 'Data não informada';
+      month = { key: monthKey, label: monthLabel, days: [] };
+      months.set(monthKey, month);
+    }
+
+    let day = month.days.find((item) => item.key === dayKey);
+    if (!day) {
+      let dayLabel = 'Data não informada';
+      if (validDate && dayKey === dateKey(today)) dayLabel = 'Hoje';
+      else if (validDate && dayKey === dateKey(yesterday)) dayLabel = 'Ontem';
+      else if (validDate) dayLabel = new Intl.DateTimeFormat('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' }).format(date);
+      day = { key: dayKey, label: dayLabel, transactions: [] };
+      month.days.push(day);
+    }
+    day.transactions.push(transaction);
+  }
+
+  return Array.from(months.values());
+}
+
+function formatTransactionTime(value: string): string {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? 'Horário não informado' : new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit' }).format(date);
 }

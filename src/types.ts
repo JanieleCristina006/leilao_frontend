@@ -10,6 +10,7 @@ export interface Artwork {
   title: string;
   artist: string;
   date: string;
+  technique?: string;
   img: string;
 }
 

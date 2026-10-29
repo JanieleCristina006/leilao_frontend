@@ -3,36 +3,152 @@
 @theme {
   --font-sans: "Archivo", system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
 
-  --color-page: #f3f4f6;
-  --color-surface: #ffffff;
-  --color-ink: #0e1116;
-  --color-ink-2: #2a2f38;
-  --color-body: #3d434d;
-  --color-muted: #5c6370;
-  --color-disabled: #8a909b;
-  --color-line: #e2e4e9;
-  --color-field: #cdd1d8;
-  --color-soft: #eef0f3;
-  --color-neutral-bg: #e6e8ec;
+@theme inline {
+  --color-page: var(--app-color-page);
+  --color-surface: var(--app-color-surface);
+  --color-ink: var(--app-color-ink);
+  --color-ink-2: var(--app-color-ink-2);
+  --color-body: var(--app-color-body);
+  --color-muted: var(--app-color-muted);
+  --color-disabled: var(--app-color-disabled);
+  --color-line: var(--app-color-line);
+  --color-field: var(--app-color-field);
+  --color-soft: var(--app-color-soft);
+  --color-neutral-bg: var(--app-color-neutral-bg);
 
-  --color-accent: #c8401e;
-  --color-live: #8e2a14;
-  --color-live-bg: #f6e1d8;
-  --color-ok: #24502f;
-  --color-ok-bg: #ddebdd;
-  --color-warn: #6a4a0e;
-  --color-warn-bg: #f2e6cc;
+  --color-accent: var(--app-color-accent);
+  --color-live: var(--app-color-live);
+  --color-live-bg: var(--app-color-live-bg);
+  --color-ok: var(--app-color-ok);
+  --color-ok-bg: var(--app-color-ok-bg);
+  --color-warn: var(--app-color-warn);
+  --color-warn-bg: var(--app-color-warn-bg);
+}
+
+:root {
+  --app-color-page: #f3f4f6;
+  --app-color-surface: #ffffff;
+  --app-color-ink: #0e1116;
+  --app-color-ink-2: #2a2f38;
+  --app-color-body: #3d434d;
+  --app-color-muted: #5c6370;
+  --app-color-disabled: #8a909b;
+  --app-color-line: #e2e4e9;
+  --app-color-field: #cdd1d8;
+  --app-color-soft: #eef0f3;
+  --app-color-neutral-bg: #e6e8ec;
+  --app-color-accent: #c8401e;
+  --app-color-live: #8e2a14;
+  --app-color-live-bg: #f6e1d8;
+  --app-color-ok: #24502f;
+  --app-color-ok-bg: #ddebdd;
+  --app-color-warn: #6a4a0e;
+  --app-color-warn-bg: #f2e6cc;
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --app-color-page: #111418;
+  --app-color-surface: #1b2027;
+  --app-color-ink: #f2f4f7;
+  --app-color-ink-2: #d9dee6;
+  --app-color-body: #c4cbd5;
+  --app-color-muted: #a1aab7;
+  --app-color-disabled: #7c8695;
+  --app-color-line: #303741;
+  --app-color-field: #4b5563;
+  --app-color-soft: #252c35;
+  --app-color-neutral-bg: #252b33;
+  --app-color-live: #ffad96;
+  --app-color-live-bg: #49271f;
+  --app-color-ok: #a3d6aa;
+  --app-color-ok-bg: #223a29;
+  --app-color-warn: #f0cd81;
+  --app-color-warn-bg: #3c321f;
+  color-scheme: dark;
 }
 
 html, body, #root { min-height: 100%; }
 body {
   margin: 0;
-  background: var(--color-page);
-  color: var(--color-ink);
+  background: var(--app-color-page);
+  color: var(--app-color-ink);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
 }
-a { color: inherit; }
 .link { text-decoration: underline; text-underline-offset: 3px; }
-.link:hover { color: var(--color-accent); }
+.link:hover { color: var(--app-color-accent); }
+.receipt-print-heading { display: none; }
+
+@page receipt {
+  size: A4;
+  margin: 0;
+}
+
+@media print {
+  body.receipt-page {
+    page: receipt;
+    min-height: 0 !important;
+    height: auto !important;
+    background: #fff !important;
+    color: #0e1116 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  body.receipt-page * {
+    visibility: hidden !important;
+  }
+
+  body.receipt-page .receipt-print,
+  body.receipt-page .receipt-print * {
+    visibility: visible !important;
+  }
+
+  body.receipt-page .receipt-print {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 16mm !important;
+    gap: 12px !important;
+    color: #0e1116 !important;
+  }
+
+  body.receipt-page .receipt-document {
+    box-sizing: border-box !important;
+    width: 100% !important;
+    border: 1px solid #d1d5db !important;
+    border-radius: 0 !important;
+    background: #fff !important;
+    padding: 8mm !important;
+    box-shadow: none !important;
+    break-inside: avoid;
+  }
+
+  body.receipt-page .receipt-print-heading {
+    display: block !important;
+  }
+
+  body.receipt-page .receipt-summary-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) !important;
+    gap: 6mm !important;
+  }
+
+  body.receipt-page .receipt-print .text-muted {
+    color: #4b5563 !important;
+  }
+
+  body.receipt-page .receipt-print .text-body {
+    color: #3d434d !important;
+  }
+
+  body.receipt-page .receipt-print p {
+    max-width: none !important;
+  }
+}

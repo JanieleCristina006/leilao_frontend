@@ -3,6 +3,7 @@ import { useApp } from '../store/AppContext';
 import { BRL, initials } from '../lib/format';
 import { ROLE_LABEL } from '../lib/status';
 import { Logo, btn } from './ui';
+import ThemeToggle from './ThemeToggle';
 
 const NAV = {
   BIDDER: [
@@ -39,6 +40,8 @@ export default function Header() {
             );
           })}
         </nav>
+
+        <ThemeToggle />
 
         {session?.role === 'BIDDER' && (
           <Link to="/carteira" className="flex flex-col items-end gap-0.5 no-underline">

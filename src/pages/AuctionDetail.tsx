@@ -83,7 +83,7 @@ function LotCard({ lot, startsAt, now, endsAt }: { lot: Lot; startsAt: string; n
   }
 
   return (
-    <article className="flex flex-col gap-3">
+    <article className="flex h-full flex-col gap-3">
       <Artwork src={lot.imageUrl} alt={`${lot.title}, de ${lot.artist}`} className="aspect-square" dim={lot.status === 'CANCELLED'} />
       <div className="flex items-center justify-between gap-2">
         <span className="font-mono text-xs text-muted">Lote {pad(lot.number)}</span>
@@ -93,7 +93,7 @@ function LotCard({ lot, startsAt, now, endsAt }: { lot: Lot; startsAt: string; n
         <h3 className="text-[22px] leading-tight font-extrabold tracking-tight">{lot.title}</h3>
         <span className="text-sm text-muted">{lot.artist}</span>
       </div>
-      <div className="flex items-baseline justify-between gap-2 border-t border-line pt-2.5">
+      <div className="mt-auto flex items-baseline justify-between gap-2 border-t border-line pt-2.5">
         <span className="text-[13px] text-muted">{priceLabel}</span>
         <span className="font-mono text-base font-medium">{BRL(price)}</span>
       </div>

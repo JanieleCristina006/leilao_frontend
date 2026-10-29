@@ -1,5 +1,7 @@
+import { useEffect, useRef } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { useApp } from './store/AppContext';
+import { useLive } from './store/LiveContext';
 import { homeFor } from './lib/status';
 import Header from './components/Header';
 import RequireRole from './components/RequireRole';
@@ -21,9 +23,25 @@ import Users from './pages/Users';
 import NotFound from './pages/NotFound';
 
 export default function App() {
-  const { session, toast, apiError, authReady } = useApp();
+  const { session, toast, apiError, authReady, lots } = useApp();
+  const live = useLive();
   const { pathname } = useLocation();
+  const lotsRef = useRef(lots);
+  lotsRef.current = lots;
+  const auctioneerLotIds = session?.role === 'AUCTIONEER'
+    ? lots.filter((lot) => lot.status === 'OPEN' || lot.status === 'WAITING').map((lot) => lot.id).join('|')
+    : '';
   const isAuth = pathname === '/entrar' || pathname === '/cadastro';
+
+  useEffect(() => {
+    if (!auctioneerLotIds) return;
+    const ids = auctioneerLotIds.split('|');
+    ids.forEach((id) => {
+      const lot = lotsRef.current.find((item) => item.id === id);
+      if (lot) live.join(lot);
+    });
+    return () => ids.forEach(live.leave);
+  }, [auctioneerLotIds, live.join, live.leave]);
 
   return (
     <>

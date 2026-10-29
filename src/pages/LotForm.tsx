@@ -48,7 +48,8 @@ export default function LotForm() {
     setTitle(a.title);
     setImageUrl(a.img);
     setExternalId(a.id);
-    setDescription((d) => d || `${a.artist}, ${a.date}.`);
+    const artworkDetails = [a.artist, a.date, a.technique].filter(Boolean).join(', ');
+    setDescription((description) => description || artworkDetails);
   };
 
   const submit = async (e: FormEvent) => {
@@ -116,6 +117,7 @@ export default function LotForm() {
                   <Artwork src={a.img} alt="" className="aspect-square" />
                   <span className="text-sm leading-snug font-semibold">{a.title}</span>
                   <span className="text-xs text-muted">{a.artist}</span>
+                  {a.technique && <span className="text-xs text-muted">{a.technique}</span>}
                 </button>
               );
             })}
