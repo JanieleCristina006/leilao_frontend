@@ -18,6 +18,7 @@ export default function LiveRoom() {
   const [submitting, setSubmitting] = useState(false);
   const joinLiveLot = live.join;
   const leaveLiveLot = live.leave;
+  const syncLiveLot = live.syncLot;
 
   const canJoin = !!lot && auction?.status === 'ACTIVE' && lot.status === 'OPEN';
   useEffect(() => {
@@ -26,6 +27,15 @@ export default function LiveRoom() {
     joinLiveLot(lot);
     return () => leaveLiveLot(lotId);
   }, [lot?.id, canJoin, joinLiveLot, leaveLiveLot]);
+
+  useEffect(() => {
+    if (!lot || !canJoin) return;
+    const lotId = lot.id;
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === 'visible') void syncLiveLot(lotId);
+    }, 5000);
+    return () => window.clearInterval(interval);
+  }, [lot?.id, canJoin, syncLiveLot]);
 
   if (!lot || !auction) return <NotFound />;
   if (!canJoin && !live.has(lot.id)) {

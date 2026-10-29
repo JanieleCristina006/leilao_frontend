@@ -279,10 +279,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const lotPayload = outer.lot ?? outer;
     const mapped = mapLot(lotPayload, 0, auctions);
     const bidsPayload = outer.bids ?? responseObject(lotPayload).bids;
-    const bids = responseList(bidsPayload).map((item, index) => mapBid(item, index, session?.userId)).sort((a, b) => a.seq - b.seq);
+    const bids = responseList(bidsPayload).map((item, index) => mapBid(item, index, session?.userId, session?.name)).sort((a, b) => a.seq - b.seq);
     setLots((current) => current.map((item) => item.id === mapped.id ? mapped : item));
     return { lot: mapped, bids };
-  }, [auctions, session?.token, session?.userId]);
+  }, [auctions, session?.token, session?.userId, session?.name]);
 
   const placeBid = useCallback(async (lotId: string, amount: number) => {
     const payload = await apiRequest<unknown>('/bids', {
@@ -293,8 +293,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const outer = unwrap(payload);
     const rawBid = outer.bid ?? outer;
     await Promise.all([loadLot(lotId), refreshData()]);
-    return mapBid(rawBid, 0, session?.userId);
-  }, [loadLot, refreshData, session?.token, session?.userId]);
+    const bid = mapBid(rawBid, 0, session?.userId, session?.name);
+    return { ...bid, mine: true, bidder: bid.bidder === 'Licitante' ? session?.name ?? 'Você' : bid.bidder };
+  }, [loadLot, refreshData, session?.token, session?.userId, session?.name]);
 
   const deposit = useCallback(async (amount: number) => {
     try {

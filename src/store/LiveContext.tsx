@@ -26,6 +26,7 @@ interface LiveCtx {
   get: (lot: Lot) => LiveState;
   join: (lot: Lot) => void;
   leave: (lotId: string) => void;
+  syncLot: (lotId: string) => Promise<void>;
   placeBid: (lotId: string, amount: number) => Promise<string | null>;
   bidsFor: (lot: Lot) => Bid[];
   minBid: (state: LiveState, lot: Lot) => number;
@@ -68,6 +69,30 @@ function stateFor(lot: Lot, bids: Bid[] = []): LiveState {
   };
 }
 
+function sameBid(left: Bid, right: Bid): boolean {
+  if (left.hash && right.hash) return left.hash === right.hash;
+  return left.amount === right.amount;
+}
+
+function mergeBids(current: Bid[], incoming: Bid[]): Bid[] {
+  const merged = [...current];
+  for (const bid of incoming) {
+    const index = merged.findIndex((existing) => sameBid(existing, bid));
+    if (index < 0) {
+      merged.push(bid);
+      continue;
+    }
+    const existing = merged[index];
+    merged[index] = {
+      ...existing,
+      ...bid,
+      bidder: bid.bidder === 'Licitante' || bid.bidder === 'Você' ? existing.bidder : bid.bidder,
+      mine: existing.mine || bid.mine,
+    };
+  }
+  return merged.sort((a, b) => a.seq - b.seq);
+}
+
 export function LiveProvider({ children }: { children: ReactNode }) {
   const app = useApp();
   const appRef = useRef(app);
@@ -106,7 +131,7 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       setNow(Date.now() + serverOffset.current);
     }
     const bidsPayload = body.bids ?? snapshot.bids ?? body.history ?? snapshot.history ?? rawLot.bids;
-    const bids = mapBids(bidsPayload, appRef.current.session?.userId);
+    const bids = mapBids(bidsPayload, appRef.current.session?.userId, appRef.current.session?.name);
     const leadership = asObject(body.leadership ?? snapshot.leadership);
     const leadingValue = body.isLeading ?? snapshot.isLeading ?? leadership.isLeading ?? rawLot.isLeading;
     const status = String(rawLot.status ?? body.status ?? '').toUpperCase();
@@ -127,7 +152,7 @@ export function LiveProvider({ children }: { children: ReactNode }) {
     const isClosed = status === 'SOLD' || status === 'UNSOLD' || status === 'CANCELLED';
     patchState(lotId, (current) => ({
       ...current,
-      ...(bidsPayload !== undefined ? { bids } : {}),
+      ...(bidsPayload !== undefined ? { bids: mergeBids(current.bids, bids) } : {}),
       ...(typeof leadingValue === 'boolean' ? {
         leading: leadingValue,
         outbid: !leadingValue && current.leading,
@@ -149,19 +174,20 @@ export function LiveProvider({ children }: { children: ReactNode }) {
     const lotId = String(body.lotId ?? asObject(body.lot).id ?? rawBid.lotId ?? asObject(rawBid.lot).id ?? '');
     if (!lotId || !rooms.current.has(lotId)) return;
     if (readNumber(rawBid.amount) === null) return;
-    const bid = mapBid(rawBid, statesRef.current[lotId]?.bids.length ?? 0, appRef.current.session?.userId);
+    const bid = mapBid(rawBid, statesRef.current[lotId]?.bids.length ?? 0, appRef.current.session?.userId, appRef.current.session?.name);
     const endsAt = body.endsAt ?? body.newEndsAt ?? rawBid.endsAt;
     const endsAtMs = typeof endsAt === 'string' ? Date.parse(endsAt) : NaN;
     const currentState = statesRef.current[lotId];
-    const alreadyAdded = bid.hash ? currentState?.bids.some((item) => item.hash === bid.hash) : currentState?.bids.some((item) => item.seq === bid.seq && item.amount === bid.amount);
-    const nextBidCount = (currentState?.bids.length ?? 0) + (alreadyAdded ? 0 : 1);
+    const alreadyAdded = currentState?.bids.some((item) => sameBid(item, bid));
+    const knownCount = appRef.current.lots.find((lot) => lot.id === lotId)?.bidCount ?? currentState?.bids.length ?? 0;
+    const reportedCount = readNumber(body.bidCount ?? asObject(body.lot).bidCount);
+    const nextBidCount = Math.max(reportedCount ?? 0, knownCount + (alreadyAdded ? 0 : 1));
     const patch: Partial<LiveState> = {
       ...(Number.isFinite(endsAtMs) ? { endsAt: endsAtMs } : {}),
       notice: body.extended === true || body.antiSnipe === true ? `Lance nos 2 minutos finais: encerramento prorrogado para ${clock(endsAtMs)}.` : '',
     };
     patchState(lotId, (current) => {
-      const exists = bid.hash ? current.bids.some((item) => item.hash === bid.hash) : current.bids.some((item) => item.seq === bid.seq && item.amount === bid.amount);
-      return { ...current, ...patch, bids: exists ? current.bids : [...current.bids, bid].sort((a, b) => a.seq - b.seq) };
+      return { ...current, ...patch, bids: mergeBids(current.bids, [bid]) };
     });
     const currentBid = readNumber(body.currentBid ?? rawBid.amount);
     if (currentBid != null) appRef.current.updateLot(lotId, {
@@ -212,6 +238,23 @@ export function LiveProvider({ children }: { children: ReactNode }) {
     if (resultEvent && result === 'WON') appRef.current.notify('Parabéns! Você arrematou este lote.');
   }, [patchState]);
 
+  const syncLot = useCallback(async (lotId: string) => {
+    if (!rooms.current.has(lotId)) return;
+    try {
+      const { lot, bids } = await appRef.current.loadLot(lotId);
+      if (!rooms.current.has(lotId)) return;
+      appRef.current.updateLot(lotId, lot);
+      patchState(lotId, (current) => ({
+        ...current,
+        bids: mergeBids(current.bids, bids),
+        endsAt: Math.max(current.endsAt, Date.parse(lot.endsAt)),
+        closed: current.closed || ['SOLD', 'UNSOLD', 'CANCELLED'].includes(lot.status),
+      }));
+    } catch {
+      // A failed reconciliation should not interrupt the active socket session.
+    }
+  }, [patchState]);
+
   useEffect(() => {
     const interval = window.setInterval(() => setNow(Date.now() + serverOffset.current), 1000);
     return () => window.clearInterval(interval);
@@ -258,7 +301,10 @@ export function LiveProvider({ children }: { children: ReactNode }) {
         statesRef.current = next;
         return next;
       });
-      rooms.current.forEach((lotId) => socket.emit('lot.join', { lotId }));
+      rooms.current.forEach((lotId) => {
+        socket.emit('lot.join', { lotId });
+        void syncLot(lotId);
+      });
     };
     const markLiveError = (message: string, lotId?: string) => {
       setStates((current) => {
@@ -308,7 +354,7 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       if (socketRef.current === socket) socketRef.current = null;
       readyRef.current = false;
     };
-  }, [app.session?.token, app.session?.userId, updateFromSnapshot, addEventBid, updateLeadership, closeLot]);
+  }, [app.session?.token, app.session?.userId, updateFromSnapshot, addEventBid, updateLeadership, closeLot, syncLot]);
 
   const has = useCallback((lotId: string) => !!statesRef.current[lotId], []);
   const get = useCallback((lot: Lot) => statesRef.current[lot.id] ?? stateFor(lot), []);
@@ -318,29 +364,14 @@ export function LiveProvider({ children }: { children: ReactNode }) {
   }, []);
   const join = useCallback((lot: Lot) => {
     rooms.current.add(lot.id);
-    setStates((current) => {
-      if (current[lot.id]) return current;
-      const next = { ...current, [lot.id]: stateFor(lot) };
+    if (!statesRef.current[lot.id]) {
+      const next = { ...statesRef.current, [lot.id]: stateFor(lot) };
       statesRef.current = next;
-      return next;
-    });
+      setStates(next);
+    }
     if (readyRef.current) socketRef.current?.emit('lot.join', { lotId: lot.id });
-    void appRef.current.loadLot(lot.id).then(({ lot: latest, bids }) => {
-      if (!rooms.current.has(lot.id)) return;
-      appRef.current.updateLot(lot.id, latest);
-      setStates((current) => {
-        const existing = current[lot.id] ?? stateFor(latest, bids);
-        const next = { ...current, [lot.id]: {
-          ...existing,
-          bids: bids.length ? bids : existing.bids,
-          endsAt: Date.parse(latest.endsAt),
-          closed: ['SOLD', 'UNSOLD', 'CANCELLED'].includes(latest.status),
-        } };
-        statesRef.current = next;
-        return next;
-      });
-    }).catch(() => undefined);
-  }, []);
+    void syncLot(lot.id);
+  }, [syncLot]);
 
   const minBid = useCallback((state: LiveState, lot: Lot) => {
     const latest = state.bids[state.bids.length - 1]?.amount ?? lot.currentBid;
@@ -362,10 +393,9 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       const snapshot = await appRef.current.loadLot(lotId).catch(() => null);
       patchState(lotId, (current) => {
         const freshBids = snapshot?.bids ?? current.bids;
-        const duplicate = freshBids.some((item) => bid.hash ? item.hash === bid.hash : item.seq === bid.seq && item.amount === bid.amount);
         return {
           ...current,
-          bids: duplicate ? freshBids : [...freshBids, bid].sort((a, b) => a.seq - b.seq),
+          bids: mergeBids(current.bids, [...freshBids, bid]),
           leading: true,
           outbid: false,
           myBid: amount,
@@ -381,7 +411,7 @@ export function LiveProvider({ children }: { children: ReactNode }) {
 
   const bidsFor = useCallback((lot: Lot) => statesRef.current[lot.id]?.bids ?? [], []);
 
-  return <Ctx.Provider value={{ now, has, get, join, leave, placeBid, bidsFor, minBid }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ now, has, get, join, leave, syncLot, placeBid, bidsFor, minBid }}>{children}</Ctx.Provider>;
 }
 
 export function useLive() {

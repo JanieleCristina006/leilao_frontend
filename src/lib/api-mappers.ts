@@ -86,17 +86,28 @@ export function mapLots(value: unknown, auctions: Auction[] = []): Lot[] {
   }).filter((item) => item.id);
 }
 
-export function mapBid(value: unknown, index = 0, userId?: string): Bid {
+export function mapBid(value: unknown, index = 0, userId?: string, userName?: string): Bid {
   const raw = responseObject(value);
-  const bidder = record(raw.bidder ?? raw.user);
+  const bidder = {
+    ...record(raw.user),
+    ...record(raw.bidder),
+    ...record(raw.bidderProfile),
+    ...record(raw.profile),
+  };
   const profileId = text(raw.profileId ?? raw.bidderId ?? raw.userId ?? bidder.id);
-  const mine = Boolean(raw.mine) || (!!userId && profileId === userId);
+  const mine = Boolean(raw.mine ?? raw.isMine) || (!!userId && profileId === userId);
+  const name = [
+    raw.bidderName, raw.profileName, raw.fullName, raw.displayName, raw.name,
+    bidder.name, bidder.fullName, bidder.displayName, bidder.username,
+    raw.bidderLabel, raw.bidderAlias,
+    typeof raw.bidder === 'string' ? raw.bidder : undefined,
+  ].find((candidate): candidate is string => typeof candidate === 'string' && !!candidate.trim());
   const createdAt = raw.createdAt ?? raw.at ?? raw.timestamp;
   const at = typeof createdAt === 'number' ? createdAt : Date.parse(String(createdAt ?? ''));
   return {
     seq: numeric(raw.sequence ?? raw.seq, index + 1),
     amount: numeric(raw.amount),
-    bidder: mine ? 'Você' : text(raw.bidderLabel ?? raw.bidderAlias ?? raw.bidderName ?? raw.displayName ?? bidder.name, 'Outro licitante'),
+    bidder: name?.trim() || (mine ? userName?.trim() : '') || (mine ? 'Você' : 'Licitante'),
     mine,
     at: Number.isFinite(at) ? at : Date.now(),
     prevHash: typeof (raw.previousHash ?? raw.prevHash) === 'string' ? String(raw.previousHash ?? raw.prevHash) : null,
@@ -104,8 +115,8 @@ export function mapBid(value: unknown, index = 0, userId?: string): Bid {
   };
 }
 
-export function mapBids(value: unknown, userId?: string): Bid[] {
-  return responseList(value).map((item, index) => mapBid(item, index, userId)).sort((a, b) => a.seq - b.seq);
+export function mapBids(value: unknown, userId?: string, userName?: string): Bid[] {
+  return responseList(value).map((item, index) => mapBid(item, index, userId, userName)).sort((a, b) => a.seq - b.seq);
 }
 
 export function mapWallet(value: unknown, transactionsValue?: unknown): Wallet {
