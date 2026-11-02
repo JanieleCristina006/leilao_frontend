@@ -1,17 +1,16 @@
 # Verzel Leilões — Frontend
 
-## Contas seed para demonstração
+## Contas de teste para avaliação
 
-Preencha com os e-mails das contas criadas pela API. As duas contas de licitante usam a senha compartilhada indicada abaixo.
+Utilize as credenciais abaixo para acessar a aplicação e avaliar os perfis de licitante e leiloeiro.
 
-| Conta | E-mail |
-|---|---|
-| Licitante 1 | `licitante@email.com` |
-| Licitante 2 | `licitanteB@email.com` |
-| Leiloeiro | `leiloeiro@email.com` |
+| Conta | E-mail | Senha |
+|---|---|---|
+| Licitante 1 | `licitante@email.com` | `Senha123!` |
+| Licitante 2 | `licitanteB@email.com` | `Senha123!` |
+| Leiloeiro | `leiloeiro@email.com` | `Senha123!` |
 
-- Senha dos licitantes: `Senha123!`
-- Senha do leiloeiro: `Senha123!`
+Para testar a disputa de lances, acesse os dois licitantes em navegadores diferentes ou utilize uma janela anônima.
 
 Frontend da plataforma Verzel Leilões, integrado à [API Verzel Leilões](https://github.com/JanieleCristina006/leilao). A aplicação usa React 19, TypeScript, Vite, Tailwind CSS, React Router e Socket.IO.
 
@@ -59,7 +58,7 @@ npm run preview  # pré-visualizar o build
 | Entrar | `/entrar` | Público | `POST /auth/login`, `GET /auth/me` |
 | Criar conta | `/cadastro` | Público | `POST /users` |
 | Leilões | `/leiloes` | Público | `GET /auctions`, `GET /lots` |
-| Detalhes do leilão | `/leiloes/:id` | Público | `GET /auctions/:id`, `GET /lots` |
+| Detalhes do leilão | `/leiloes/:id` | Público | `GET /auctions/:id` |
 | Sala ao vivo | `/lotes/:id/sala` | `BIDDER` | `GET /lots/:id`, Socket.IO, `POST /bids` |
 | Meus arremates | `/meus-arremates` | `BIDDER` | `GET /bids/me/wins`, comprovantes |
 | Carteira | `/carteira` | `BIDDER`, `AUCTIONEER` | `/wallet/me`, `/wallet/me/transactions`, `/wallet/deposits` |
