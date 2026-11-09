@@ -18,10 +18,6 @@ export default function LotForm() {
   const [picked, setPicked] = useState<Art | null>(null);
 
   const [auctionId, setAuctionId] = useState(options[0]?.id ?? '');
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [imageUrl, setImageUrl] = useState('');
-  const [externalId, setExternalId] = useState('');
   const [startingBid, setStartingBid] = useState('');
   const [increment, setIncrement] = useState('1,00');
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -45,11 +41,6 @@ export default function LotForm() {
 
   const pick = (a: Art) => {
     setPicked(a);
-    setTitle(a.title);
-    setImageUrl(a.img);
-    setExternalId(a.id);
-    const artworkDetails = [a.artist, a.date, a.technique].filter(Boolean).join(', ');
-    setDescription((description) => description || artworkDetails);
   };
 
   const submit = async (e: FormEvent) => {
@@ -58,19 +49,19 @@ export default function LotForm() {
     const start = parseMoney(startingBid);
     const inc = Number.isNaN(parseMoney(increment)) ? 1 : parseMoney(increment);
     if (!auctionId) er.auctionId = 'Escolha um leilão.';
-    if (!title.trim()) er.title = 'O título é obrigatório.';
+    if (!picked) er.artwork = 'Selecione uma obra na busca da API.';
     if (Number.isNaN(start) || start < 0) er.startingBid = 'Informe um lance inicial igual ou maior que zero.';
     else if (!hasTwoDecimalsMax(start)) er.startingBid = 'Use no máximo duas casas decimais.';
     if (inc <= 0 || !hasTwoDecimalsMax(inc)) er.increment = 'Informe um incremento positivo com até duas casas decimais.';
     setErrors(er);
-    if (Object.keys(er).length) return;
+    if (Object.keys(er).length || !picked) return;
     setSubmitting(true);
     const failure = await addLot({
       auctionId,
-      title: title.trim(),
-      description: description.trim(),
-      imageUrl,
-      externalId,
+      title: picked.title,
+      description: [picked.artist, picked.date, picked.technique].filter(Boolean).join(', '),
+      imageUrl: picked.img,
+      externalId: picked.id,
       startingBid: start,
       minimumIncrement: inc,
     });
@@ -90,9 +81,9 @@ export default function LotForm() {
 
       <section className="flex flex-col gap-4 border-t border-ink pt-6">
         <div className="flex flex-col gap-1">
-          <span className="font-mono text-xs text-muted">Passo 1 de 2 · opcional</span>
+          <span className="font-mono text-xs text-muted">Passo 1 de 2</span>
           <h2 className="text-[28px] font-extrabold tracking-tight">Buscar obra no Art Institute of Chicago</h2>
-          <span className="text-sm text-muted">Ao escolher uma obra, título, imagem e ID externo são preenchidos automaticamente.</span>
+          <span className="text-sm text-muted">Selecione uma obra da API para criar o lote.</span>
         </div>
         <form onSubmit={(e) => { e.preventDefault(); void runSearch(q); }} className="flex flex-wrap gap-2" role="search">
           <TextInput aria-label="Nome da obra ou do artista" placeholder="Nome da obra ou do artista" value={q} onChange={(e) => setQ(e.target.value)} className="min-w-[220px] flex-1" />
@@ -105,7 +96,7 @@ export default function LotForm() {
           ))}
         </div>
         {search.status === 'loading' && <LoadingState label="Buscando obras…" compact />}
-        {search.status === 'error' && <Notice tone="error">{search.message} Você pode preencher o lote manualmente abaixo.</Notice>}
+        {search.status === 'error' && <Notice tone="error">{search.message} Tente buscar novamente para selecionar uma obra.</Notice>}
         {search.status === 'done' && !search.results.length && <p className="text-[15px] text-muted">Nenhuma obra com imagem encontrada para essa busca.</p>}
         {search.results.length > 0 && (
           <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,170px),1fr))] gap-4">
@@ -139,19 +130,9 @@ export default function LotForm() {
                 {options.map((a) => <option key={a.id} value={a.id}>{a.title} · {STATUS[a.status].label}</option>)}
               </select>
             </Field>
-            <Field id="l-title" label="Título" required error={errors.title}>
-              <TextInput id="l-title" value={title} invalid={!!errors.title} onChange={(e) => setTitle(e.target.value)} />
-            </Field>
-            <Field id="l-desc" label="Descrição" optional>
-              <textarea id="l-desc" rows={3} value={description} onChange={(e) => setDescription(e.target.value)} className={`${inputCls} h-auto resize-y border-field py-3 leading-relaxed`} />
-            </Field>
+            {errors.artwork && <p role="alert" className="text-sm text-live">{errors.artwork}</p>}
+            {!picked && <p className="text-sm text-muted">Selecione uma obra na busca acima para cadastrar o lote.</p>}
             <div className="grid gap-5 sm:grid-cols-2">
-              <Field id="l-img" label="URL da imagem" optional>
-                <TextInput id="l-img" placeholder="https://" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} className="text-sm" />
-              </Field>
-              <Field id="l-ext" label="ID externo" optional>
-                <TextInput id="l-ext" placeholder="Preenchido pela busca" value={externalId} onChange={(e) => setExternalId(e.target.value)} className="bg-page font-mono text-sm" />
-              </Field>
               <Field id="l-start" label="Lance inicial" required error={errors.startingBid}>
                 <MoneyInput id="l-start" value={startingBid} invalid={!!errors.startingBid} onChange={(e) => setStartingBid(e.target.value)} />
               </Field>
@@ -161,13 +142,13 @@ export default function LotForm() {
             </div>
             <div className="flex flex-wrap justify-end gap-3 border-t border-line pt-6">
               <Button variant="ghost" onClick={() => nav('/leiloeiro/leiloes')}>Cancelar</Button>
-              <Button type="submit" disabled={!options.length} loading={submitting}>{submitting ? 'Cadastrando…' : 'Cadastrar lote'}</Button>
+              <Button type="submit" disabled={!options.length || !picked} loading={submitting}>{submitting ? 'Cadastrando…' : 'Cadastrar lote'}</Button>
             </div>
           </form>
           <aside className="flex flex-col gap-3 lg:sticky lg:top-6">
             <Eyebrow>Como o licitante verá</Eyebrow>
-            {imageUrl ? <Artwork src={imageUrl} alt="" className="aspect-square" /> : <div className="flex aspect-square items-center justify-center rounded-[2px] bg-neutral-bg text-sm text-body">Sem imagem</div>}
-            <h3 className="text-[24px] leading-tight font-extrabold tracking-tight">{title || 'Título do lote'}</h3>
+            {picked?.img ? <Artwork src={picked.img} alt="" className="aspect-square" /> : <div className="flex aspect-square items-center justify-center rounded-[2px] bg-neutral-bg text-sm text-body">Sem imagem</div>}
+            <h3 className="text-[24px] leading-tight font-extrabold tracking-tight">{picked?.title || 'Título do lote'}</h3>
             <div className="flex items-baseline justify-between border-t border-line pt-2.5"><span className="text-[13px] text-muted">Lance inicial</span><span className="font-mono">{Number.isNaN(start) ? 'R$ —' : BRL(start)}</span></div>
             <div className="flex items-baseline justify-between"><span className="text-[13px] text-muted">Incremento</span><span className="font-mono text-sm">{BRL(Number.isNaN(inc) ? 1 : inc)}</span></div>
           </aside>

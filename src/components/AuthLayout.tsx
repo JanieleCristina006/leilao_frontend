@@ -3,7 +3,7 @@ import type { Artwork } from '../types';
 import { Eyebrow, Logo } from './ui';
 import ThemeToggle from './ThemeToggle';
 
-export default function AuthLayout({ art, caption, reverse, children }: { art: Artwork; caption: string; reverse?: boolean; children: ReactNode }) {
+export default function AuthLayout({ art, caption, reverse, wide, children }: { art: Artwork; caption: string; reverse?: boolean; wide?: boolean; children: ReactNode }) {
   return (
     <main className="grid min-h-screen md:grid-cols-2">
       <div className={`relative min-h-[220px] bg-neutral-bg sm:min-h-[280px] md:min-h-screen ${reverse ? 'md:order-2' : ''}`}>
@@ -15,7 +15,7 @@ export default function AuthLayout({ art, caption, reverse, children }: { art: A
         </div>
       </div>
       <div className="flex items-center justify-center px-4 py-10 sm:px-6 sm:py-14 md:px-8">
-        <div className="flex w-full max-w-[400px] flex-col gap-6">
+        <div className={`flex w-full flex-col gap-6 ${wide ? 'max-w-[520px]' : 'max-w-[400px]'}`}>
           <div className="flex items-center justify-between gap-4">
             <Logo />
             <ThemeToggle />
