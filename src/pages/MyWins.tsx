@@ -1,3 +1,4 @@
+import { userErrorMessage } from '../lib/api';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Artwork, Button, EmptyState, LoadingState, Notice, Page, PageTitle, SectionTitle, btn } from '../components/ui';
@@ -48,7 +49,7 @@ export default function MyWins() {
         setWins(rows.map(mapWin).filter((win): win is Win => win !== null));
       })
       .catch((error) => {
-        if (active) setWinsError(error instanceof Error ? error.message : 'Não foi possível carregar seus arremates.');
+        if (active) setWinsError(userErrorMessage(error, 'Não foi possível carregar seus arremates.'));
       })
       .finally(() => { if (active) setWinsLoading(false); });
     return () => { active = false; };
@@ -89,7 +90,10 @@ export default function MyWins() {
                   <span className="text-[13px] text-muted">{win.issuedAt ? `Arrematado em ${fmtShortDateTime(win.issuedAt)}` : 'Data do arremate não informada'}</span>
                 </div>
                 <span className="text-right font-mono text-[15px] font-semibold text-live">− {BRL(Math.abs(win.finalAmount))}</span>
-                <Button variant="ghost" size="sm" className="col-span-2 w-fit" onClick={() => setSelected(win)}>Ver detalhes</Button>
+                <div className="col-span-2 flex flex-wrap gap-2">
+                  <Button variant="ghost" size="sm" onClick={() => setSelected(win)}>Ver detalhes</Button>
+                  <Link to={`/lotes/${encodeURIComponent(win.lot.id)}/auditoria`} className={btn('ghost', 'sm')}>Ver histórico</Link>
+                </div>
               </li>
             ))}
           </ul>
@@ -105,6 +109,7 @@ export default function MyWins() {
 
       <Modal open={!!selected} size="wide" title={selected?.lot.title ?? ''} onClose={() => setSelected(null)}
         footer={<>
+          {selected?.lot.id && <Link to={`/lotes/${encodeURIComponent(selected.lot.id)}/auditoria`} className={btn('secondary', 'md')}>Ver histórico</Link>}
           {selected?.lot.id && <Link to={`/lotes/${encodeURIComponent(selected.lot.id)}/comprovante?download=pdf`} className={`${btn('secondary', 'md')} no-underline`}>Baixar PDF</Link>}
           {selected?.lot.id && <Link to={`/lotes/${encodeURIComponent(selected.lot.id)}/comprovante`} className={`${btn('secondary', 'md')} no-underline`}>Ver comprovante</Link>}
           <Button variant="primary" size="md" onClick={() => setSelected(null)}>Fechar</Button>

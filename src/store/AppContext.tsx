@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import type { Artwork, Auction, Bid, Lot, Role, Transaction, User, Wallet } from '../types';
-import { apiRequest, ApiError, messageForStatus, responseList, responseObject } from '../lib/api';
+import { apiRequest, ApiError, userErrorMessage, responseList, responseObject } from '../lib/api';
 import { mapArtworks, mapAuctions, mapBid, mapLots, mapUser, mapWallet, mapLot, unwrap } from '../lib/api-mappers';
 import { toApiDecimal } from '../lib/format';
 
@@ -115,9 +115,7 @@ function sessionFrom(profileValue: unknown, token: string, fallback?: Session, s
 }
 
 function errorText(error: unknown): string {
-  if (error instanceof ApiError) return error.message || messageForStatus(error.status);
-  if (error instanceof Error) return error.message;
-  return 'Não foi possível concluir a solicitação.';
+  return userErrorMessage(error);
 }
 
 export function AppProvider({ children }: { children: ReactNode }) {

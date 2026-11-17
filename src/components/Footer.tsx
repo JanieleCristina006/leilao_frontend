@@ -34,7 +34,7 @@ export default function Footer() {
         </nav>
 
         <div className="border-t border-line pt-4 text-xs text-muted sm:col-span-2 md:col-span-3">
-          © {new Date().getFullYear()} Verzel Leilões
+          © {new Date().getFullYear()} Arremate Leilões
         </div>
       </div>
     </footer>

@@ -27,7 +27,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
       body: body === undefined ? undefined : JSON.stringify(body),
     });
   } catch {
-    throw new ApiError('Não foi possível conectar à API. Verifique a conexão e tente novamente.', 0);
+    throw new ApiError('Não foi possível conectar. Verifique sua conexão e tente novamente.', 0);
   }
 
   const text = await response.text();
@@ -39,11 +39,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   }
 
   if (!response.ok) {
-    const detail = typeof payload === 'object' && payload !== null
-      ? (payload as Record<string, unknown>).message
-      : undefined;
-    const message = Array.isArray(detail) ? detail.join(' ') : typeof detail === 'string' ? detail : '';
-    throw new ApiError(message || messageForStatus(response.status), response.status);
+    throw new ApiError(messageForStatus(response.status), response.status);
   }
 
   return payload as T;
@@ -57,8 +53,8 @@ export function messageForStatus(status: number): string {
   if (status === 409) return 'Esta ação não pode ser concluída por causa de um conflito nos dados.';
   if (status === 422) return 'Não foi possível processar esta ação para sua conta.';
   if (status === 503) return 'Este serviço está indisponível no momento. Tente novamente mais tarde.';
-  if (status === 0) return 'Não foi possível conectar à API. Verifique a conexão e tente novamente.';
-  return 'Ocorreu um erro ao comunicar com a API. Tente novamente.';
+  if (status === 0) return 'Não foi possível conectar. Verifique sua conexão e tente novamente.';
+  return 'Não foi possível concluir a solicitação. Tente novamente mais tarde.';
 }
 
 export function responseObject(value: unknown): Record<string, unknown> {
@@ -83,4 +79,8 @@ export function responseList(value: unknown): Record<string, unknown>[] {
     }
   }
   return [];
+}
+
+export function userErrorMessage(error: unknown, fallback = "Não foi possível concluir a solicitação. Tente novamente mais tarde."): string {
+  return error instanceof ApiError ? messageForStatus(error.status) : fallback;
 }

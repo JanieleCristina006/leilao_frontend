@@ -48,7 +48,7 @@ export function Button({ variant, size, className = '', loading = false, disable
 export function Logo({ to = '/', light = false }: { to?: string; light?: boolean }) {
   return (
     <Link to={to} className={`flex items-baseline gap-2 no-underline ${light ? 'text-white' : 'text-ink'}`}>
-      <span className="text-[28px] font-extrabold leading-none tracking-tight">Verzel</span>
+      <span className="text-[28px] font-extrabold leading-none tracking-tight">Arremate</span>
       <span className={`text-[11px] font-bold uppercase tracking-[0.16em] ${light ? 'text-white/70' : 'text-muted'}`}>Leilões</span>
     </Link>
   );

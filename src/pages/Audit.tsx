@@ -1,3 +1,4 @@
+import { userErrorMessage } from '../lib/api';
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import type { Integrity } from '../types';
@@ -33,7 +34,7 @@ export default function Audit() {
         const outer = responseObject(payload);
         setAudit(object(outer.audit ?? outer));
       })
-      .catch((cause) => { if (active) setError(cause instanceof Error ? cause.message : 'Não foi possível carregar a auditoria.'); })
+      .catch((cause) => { if (active) setError(userErrorMessage(cause, 'Não foi possível carregar a auditoria.')); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [id]);

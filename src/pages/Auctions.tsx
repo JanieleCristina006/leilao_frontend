@@ -7,14 +7,14 @@ import { countdown, fmtPeriod } from '../lib/format';
 import { ANTI_SNIPE_MS } from '../lib/status';
 import { Artwork, Badge, EmptyState, LiveDot, LoadingState, Page, PageTitle, Segmented, Stat, btn } from '../components/ui';
 
-type Filter = 'ALL' | Extract<AuctionStatus, 'ACTIVE' | 'SCHEDULED' | 'FINISHED'>;
+type Filter = 'ALL' | Extract<AuctionStatus, 'ACTIVE' | 'SCHEDULED'>;
 
 export default function Auctions() {
   const { auctions, lots, loading } = useApp();
   const live = useLive();
   const [filter, setFilter] = useState<Filter>('ALL');
 
-  const publicAuctions = auctions.filter((a) => a.status !== 'DRAFT' && a.status !== 'CANCELLED');
+  const publicAuctions = auctions.filter((a) => a.status === 'ACTIVE' || a.status === 'SCHEDULED');
   const featured = publicAuctions.find((a) => a.status === 'ACTIVE');
   const lotsOf = (id: string) => lots.filter((l) => l.auctionId === id);
   const cover = (id: string) => lotsOf(id)[0];
@@ -26,9 +26,9 @@ export default function Auctions() {
   const soonestEnds = soonest ? live.get(soonest).endsAt : 0;
   const remaining = soonestEnds - live.now;
 
-  const options = (['ALL', 'ACTIVE', 'SCHEDULED', 'FINISHED'] as Filter[]).map((v) => ({
+  const options = (['ALL', 'ACTIVE', 'SCHEDULED'] as Filter[]).map((v) => ({
     value: v,
-    label: { ALL: 'Todos', ACTIVE: 'Ao vivo', SCHEDULED: 'Agendados', FINISHED: 'Encerrados' }[v],
+    label: { ALL: 'Todos', ACTIVE: 'Ao vivo', SCHEDULED: 'Agendados' }[v],
     count: v === 'ALL' ? publicAuctions.length : publicAuctions.filter((a) => a.status === v).length,
   }));
   const showFeatured = featured && (filter === 'ALL' || filter === 'ACTIVE');

@@ -24,7 +24,7 @@ import Users from './pages/Users';
 import NotFound from './pages/NotFound';
 
 export default function App() {
-  const { session, toast, apiError, authReady, lots } = useApp();
+  const { session, toast, authReady, lots } = useApp();
   const live = useLive();
   const { pathname } = useLocation();
   const lotsRef = useRef(lots);
@@ -48,11 +48,6 @@ export default function App() {
     <div className="flex min-h-screen flex-col">
       {!isAuth && <Header />}
       <div className="flex-1">
-        {apiError && (
-          <div role="status" className="mx-auto max-w-[1240px] px-5 pt-4 text-sm text-live md:px-8">
-            {apiError}
-          </div>
-        )}
         <Routes>
           <Route path="/" element={!authReady ? <LoadingState label="Validando sessão…" /> : <Navigate to={session ? homeFor(session.role) : '/leiloes'} replace />} />
           <Route path="/entrar" element={<Login />} />

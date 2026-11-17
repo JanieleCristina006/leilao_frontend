@@ -1,3 +1,4 @@
+import { userErrorMessage } from '../lib/api';
 import { useEffect, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Artwork as Art } from '../types';
@@ -35,7 +36,7 @@ export default function LotForm() {
       const results = await searchArtworks(term.trim());
       setSearch({ status: 'done', results });
     } catch (error) {
-      setSearch({ status: 'error', results: [], message: error instanceof Error ? error.message : 'Não foi possível buscar obras agora.' });
+      setSearch({ status: 'error', results: [], message: userErrorMessage(error, 'Não foi possível buscar obras agora.') });
     }
   };
 

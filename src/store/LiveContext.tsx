@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import { io, type Socket } from 'socket.io-client';
 import type { Bid, Lot } from '../types';
 import { useApp } from './AppContext';
-import { API_URL } from '../lib/api';
+import { API_URL, userErrorMessage } from '../lib/api';
 import { mapBid, mapBids } from '../lib/api-mappers';
 import { BRL, clock, hasTwoDecimalsMax } from '../lib/format';
 import { ANTI_SNIPE_MS } from '../lib/status';
@@ -296,7 +296,7 @@ export function LiveProvider({ children }: { children: ReactNode }) {
         const next = Object.fromEntries(Object.entries(current).map(([id, value]) => [id, {
           ...value,
           connected: true,
-          notice: value.notice.startsWith('Falha na conexão ao vivo:') ? '' : value.notice,
+          notice: value.notice === 'Não foi possível concluir a solicitação. Tente novamente mais tarde.' ? '' : value.notice,
         }]));
         statesRef.current = next;
         return next;
@@ -306,22 +306,19 @@ export function LiveProvider({ children }: { children: ReactNode }) {
         void syncLot(lotId);
       });
     };
-    const markLiveError = (message: string, lotId?: string) => {
+    const markLiveError = (lotId?: string) => {
       setStates((current) => {
         const next = Object.fromEntries(Object.entries(current).map(([id, value]) => [id,
-          (!lotId || lotId === id) ? { ...value, connected: false, notice: `Falha na conexão ao vivo: ${message}` } : value,
+          (!lotId || lotId === id) ? { ...value, connected: false, notice: 'Não foi possível concluir a solicitação. Tente novamente mais tarde.' } : value,
         ]));
         statesRef.current = next;
         return next;
       });
     };
-    const onConnectError = (error: Error) => markLiveError(error.message || 'Não foi possível autenticar a conexão.');
+    const onConnectError = () => markLiveError();
     const onLiveError = (payload: unknown) => {
       const body = eventBody(payload);
-      const message = typeof body.message === 'string' ? body.message
-        : typeof body.error === 'string' ? body.error
-          : 'A API não conseguiu abrir a sala deste lote.';
-      markLiveError(message, typeof body.lotId === 'string' ? body.lotId : undefined);
+      markLiveError(typeof body.lotId === 'string' ? body.lotId : undefined);
     };
     const onSnapshot = (payload: unknown) => updateFromSnapshot(payload);
     const onBid = (payload: unknown) => addEventBid(payload);
@@ -406,7 +403,7 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       appRef.current.notify(`Lance de ${BRL(amount)} enviado.`);
       return null;
     } catch (error) {
-      return error instanceof Error ? error.message : 'Não foi possível registrar o lance.';
+      return userErrorMessage(error);
     }
   }, [minBid, patchState]);
 

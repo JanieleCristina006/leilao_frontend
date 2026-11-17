@@ -45,7 +45,7 @@ export default function Register() {
       <div className="flex flex-col gap-2">
         <h1 className="text-[44px] leading-none font-extrabold tracking-tight">Criar conta</h1>
         <p className="text-base leading-relaxed text-pretty text-muted">
-          Sua conta começa como licitante, com carteira de saldo zero. Perfis de leiloeiro são habilitados pela equipe Verzel.
+          Sua conta começa como licitante, com carteira de saldo zero. Perfis de leiloeiro são habilitados pela equipe Arremate.
         </p>
       </div>
       <form onSubmit={submit} className="flex flex-col gap-5" noValidate>

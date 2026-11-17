@@ -45,7 +45,10 @@ export default function LiveRoom() {
         <Notice tone="warn" title="A sala deste lote não está aberta">
           {lot.status === 'CANCELLED' ? 'Este lote foi cancelado pelo leiloeiro.' : lot.status === 'WAITING' ? 'O leilão ainda não começou.' : 'Este lote já foi encerrado.'}
         </Notice>
-        <div><Link to={`/leiloes/${auction.id}`} className={btn('secondary')}>Voltar ao leilão</Link></div>
+        <div className="flex flex-wrap gap-2.5">
+          <Link to={`/leiloes/${auction.id}`} className={btn('secondary')}>Voltar ao leilão</Link>
+          {lot.status === 'SOLD' && <Link to={`/lotes/${lot.id}/auditoria`} className={btn('secondary')}>Ver histórico</Link>}
+        </div>
       </Page>
     );
   }
@@ -149,6 +152,7 @@ export default function LiveRoom() {
                 </span>
                 <div className="flex flex-wrap gap-2.5">
                   <Link to={`/lotes/${lot.id}/comprovante`} className={btn('primary')}>Ver comprovante</Link>
+                  <Link to={`/lotes/${lot.id}/auditoria`} className={btn('secondary')}>Ver histórico</Link>
                 </div>
               </div>
             )}

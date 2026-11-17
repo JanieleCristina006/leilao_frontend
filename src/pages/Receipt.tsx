@@ -1,3 +1,4 @@
+import { userErrorMessage } from '../lib/api';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useApp } from '../store/AppContext';
@@ -28,7 +29,7 @@ export default function Receipt() {
     setError('');
     apiRequest<unknown>(`/lots/${encodeURIComponent(id)}/receipt`)
       .then((payload) => { if (active) setReceipt(responseObject(payload)); })
-      .catch((cause) => { if (active) setError(cause instanceof Error ? cause.message : 'Não foi possível carregar o comprovante.'); })
+      .catch((cause) => { if (active) setError(userErrorMessage(cause, 'Não foi possível carregar o comprovante.')); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [id]);

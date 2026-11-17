@@ -32,7 +32,7 @@ export function mapAuction(value: unknown): Auction {
     startsAt: iso(raw.startsAt),
     endsAt: iso(raw.endsAt),
     auctioneerId: text(raw.auctioneerId ?? auctioneer.id),
-    auctioneerName: text(raw.auctioneerName ?? auctioneer.name, 'Leiloeiro Verzel'),
+    auctioneerName: text(raw.auctioneerName ?? auctioneer.name, 'Leiloeiro Arremate'),
   };
 }
 

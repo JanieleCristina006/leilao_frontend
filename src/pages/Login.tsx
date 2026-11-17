@@ -1,3 +1,4 @@
+import { userErrorMessage } from '../lib/api';
 import { useState, type FormEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useApp } from '../store/AppContext';
@@ -30,14 +31,14 @@ export default function Login() {
       const profile = await login(email.trim(), password);
       nav(from ?? homeFor(profile.role), { replace: true });
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Não foi possível entrar. Confira seus dados e tente novamente.');
+      setError(userErrorMessage(cause, 'Não foi possível entrar. Confira seus dados e tente novamente.'));
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <AuthLayout art={ARTWORKS[0]} caption="Acervo Verzel">
+    <AuthLayout art={ARTWORKS[0]} caption="Acervo Arremate">
       <div className="flex flex-col gap-2">
         <h1 className="text-[44px] leading-none font-extrabold tracking-tight">Entrar</h1>
         <p className="text-base leading-relaxed text-muted">Acompanhe leilões ao vivo, dê lances e consulte sua carteira.</p>
